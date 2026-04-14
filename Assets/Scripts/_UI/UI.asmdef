@@ -2,7 +2,8 @@
     "name": "Project.UI",
     "rootNamespace": "Project.UI",
     "references": [
-        "Project.Core"
+        "Project.Core",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
