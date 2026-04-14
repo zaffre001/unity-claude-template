@@ -1,0 +1,25 @@
+{
+    "name": "Project.Tests.EditMode",
+    "rootNamespace": "Project.Tests.EditMode",
+    "references": [
+        "Project.Core",
+        "Project.UI",
+        "Project.Combat",
+        "Project.Rendering"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
