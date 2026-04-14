@@ -1,0 +1,16 @@
+{
+    "name": "Project.UI",
+    "rootNamespace": "Project.UI",
+    "references": [
+        "Project.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

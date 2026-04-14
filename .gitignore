@@ -1,0 +1,21 @@
+# Unity 필수 제외 항목
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# IDE
+.idea/
+.vs/
+*.csproj
+*.sln
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code 로컬 지침 (개인용, 버전 컨트롤 제외)
+CLAUDE.local.md
