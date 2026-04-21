@@ -1,120 +1,505 @@
 # Programming RULES — Language & Engine (범용 강제 규약)
 
-출처: Chris Zimmerman, *The Rules of Programming* (Sucker Punch Productions).  
-21개의 보편 코딩 규약. 에이전트는 이 규칙들을 **강제 준수**한다. 특정 규칙을 어길 불가피한 이유가 있으면 아키텍트에게 사유와 함께 보고한다.
+Chris Zimmerman, *The Rules of Programming* (Sucker Punch Productions)의 **21개 규칙 개념만 참고**하여 Unity/C# 맥락으로 **전면 재작성**한 규약 모음이다. 책 본문은 인용하지 않았으며, 모든 예시와 문구는 이 프로젝트용으로 새로 작성했다. 저작권은 원저자에게 있으며, 규칙의 깊은 맥락을 얻으려면 [원서](https://www.oreilly.com/library/view/the-rules-of/9781098133108/) 구매를 권장한다.
 
-> ⚠️ 루트 [`RULES.md`](../../RULES.md)는 이 프로젝트 고유의 **불변 제약** (Domain Reload, 심링크 등). 이 파일은 **범용 프로그래밍 규약**이다. 두 파일은 역할이 다르다.
+에이전트는 이 규약들을 **강제 준수**한다. 위반해야 할 불가피한 이유가 있으면 사유와 함께 아키텍트에게 보고한다.
+
+> 루트 [`RULES.md`](../../RULES.md)는 이 프로젝트 고유의 **불변 제약**이다. 이 파일(`knowledge/RULES.md`)은 어느 프로젝트에나 적용되는 **범용 코딩 규약**이다. 혼동하지 않는다.
 
 ---
 
 ## R1 — 가능한 한 단순하게, 그러나 그 이상은 아니게
-- 문제를 풀기 위한 **최소 복잡도**만 유지한다.
-- 지금 필요하지 않은 추상화·옵션·설정을 만들지 않는다.
-- 더 단순화할 수 있으면 단순화하고, 그 이하로는 깎지 않는다.
 
-## R2 — 버그는 전염된다
-- 버그를 발견하면 **즉시 고친다.** 미룰수록 다른 코드가 버그 동작에 의존하게 된다.
-- 컴파일 통과 ≠ 작동. 테스트·런타임 검증을 거치지 않은 코드는 버그가 있다고 가정한다.
+DON'T
+```csharp
+// 현재 사용처 1곳, 미래 수요 없음
+public abstract class EventHandlerBase<TEvent, TContext> where TEvent : IEvent
+{
+    protected abstract void Handle(TEvent evt, TContext ctx);
+}
+public class DeathHandler : EventHandlerBase<DeathEvent, GameContext> { ... }
+```
 
-## R3 — 좋은 이름이 최고의 문서
-- 변수·함수·클래스 이름은 **역할을 숨김없이** 드러낸다.
-- 주석으로 이름을 보완하고 싶어지면 **이름을 고친다**.
-- 약어는 도메인 표준(`id`, `ui`, `ai`)만. 프로젝트 고유 축약은 `CLAUDE.md`에 정의된 것만 사용.
+DO
+```csharp
+public class DeathHandler
+{
+    public void Handle(DeathEvent evt) { ... }
+}
+```
 
-## R4 — 일반화는 세 번째 사례부터
-- 같은 패턴이 **세 번** 나올 때까지 추상화하지 않는다.
-- 두 사례로 일반화하면 잘못된 모양이 굳어져서 세 번째 케이스가 안 맞는다.
-- "나중에 쓸 것 같다"는 추상화의 근거가 아니다.
-
-## R5 — 최적화의 첫 수업은 "최적화하지 말 것"
-- **측정 전 최적화 금지.** Unity Profiler·Profile Analyzer의 숫자가 있을 때만 시작한다.
-- "느릴 것 같다"는 근거가 아니다.
-- 가독성을 희생하는 최적화는 병목이 증명된 뒤에만. 증명은 수정 전후 diff로.
-
-## R6 — 코드 리뷰는 세 가지 이유로 좋다
-- 모든 변경은 **리뷰 가능한 단위**(PR/diff)로 잘라낸다.
-- 한 PR은 **한 주제**만.
-- 리뷰 부담이 커지면 쪼갠다. 큰 덩어리를 그대로 밀어 넣지 않는다.
-
-## R7 — 실패 케이스를 제거한다
-- **API 타입으로 잘못된 상태를 표현 불가능하게** 만든다. 검증을 호출자에게 미루지 않는다.
-- `null` 가능성은 타입으로 명시한다 (`Nullable<T>`, C# 8+ nullable reference).
-- 검증은 **경계(boundary)** 에서 한 번. 내부에선 가정한다.
-
-## R8 — 실행되지 않는 코드는 작동하지 않는다
-- **Dead code는 삭제.** 주석 처리된 코드, 호출처 없는 함수, `#if DISABLED` 블록 금지.
-- 과거 이력은 VCS가 보존한다. 파일에 남기지 않는다.
-- 삭제가 두려우면 Feature Flag로 끄되, 다음 스프린트까지 정리.
-
-## R9 — 접혀서 읽히는 코드를 쓴다
-- 함수는 **한 화면 안에서** 전체 흐름이 드러나야 한다.
-- 함수 이름만 보고 본문을 안 열어도 무엇을 하는지 알 수 있어야.
-- 20~30줄을 넘는 함수, 3단 이상 중첩은 추출 후보.
-
-## R10 — 복잡성은 한 곳에 가둔다
-- 복잡성은 **모듈 하나**에 집중시키고, 외부 인터페이스는 단순하게.
-- 여러 파일에 복잡성을 흩뿌리지 않는다.
-- Unity 어셈블리 경계(`_Core`/`_UI`/`_Combat`/`_Rendering`)가 자연스러운 격리 단위다.
-
-## R11 — 2배 이상 좋은가?
-- 아키텍처 교체는 **측정 가능한 2배 이상의 이득**이 있을 때만.
-- 10% 개선을 위해 기존 구조를 갈아엎지 않는다.
-- 불만은 개선 제안으로 쌓아두고, 임계점을 넘을 때 한번에 교체.
-
-## R12 — 큰 팀은 강한 컨벤션이 필요하다
-- 팀 규약에서 **독단적으로 벗어나지 않는다** (`CLAUDE.md`의 네임스페이스·스타일).
-- "내가 더 낫다고 생각하는 방식"을 혼자 적용하지 않는다. 제안은 아키텍트에게.
-- 규약과 충돌하는 서드파티 라이브러리는 adapter로 감싼다.
-
-## R13 — 눈사태를 시작한 조약돌을 찾아라
-- 버그 수정은 **증상이 아니라 근본 원인**을 찾는다.
-- 한 단계 위에서 덮지 않는다. `try/catch`로 예외를 삼키면 원인이 더 깊이 숨는다.
-- "여기 고치니 증상이 사라졌다"로 끝내지 말고, **왜 그 증상이 났는지**까지 설명할 수 있어야.
-
-## R14 — 코드에는 4가지 맛이 있다
-- 쉬운 문제는 **쉬운 코드**로, 어려운 문제만 어려운 코드로 푼다.
-- 쉬운 문제에 이른 추상화·복잡한 패턴을 얹지 않는다.
-- 반대로, 어려운 문제를 억지로 단순하게 쓰려 하지도 않는다.
-
-## R15 — 잡초는 즉시 뽑는다
-- 작은 이상(Dead code, 이름 모호, 중복 2회)을 발견하면 **그 자리에서** 고치거나, 즉시 티켓으로 기록한다.
-- "나중에"는 대개 "영원히 안 함"이다.
-- 현재 작업 범위를 벗어나면 `/task-done`의 도메인 승격 또는 `/self-update`로 기록.
-
-## R16 — 결과에서 거꾸로 설계한다
-- **원하는 결과를 먼저 정의**하고, 역산해서 코드로 내려간다.
-- "이 코드로 뭘 할 수 있지?"가 아니라 "이 결과를 내려면 어떤 코드가 필요한가?"
-- 테스트를 먼저 적어보는 것도 같은 원리.
-
-## R17 — 때로 더 큰 문제가 더 쉽게 풀린다
-- 좁은 특수 케이스 10개보다 **한 단계 위의 일반 문제** 하나가 유지보수 쉽다.
-- `if`가 늘어나면 추상화가 한 단계 모자란 신호.
-- 단, R4를 함께 지킨다 — 세 번째 사례 없이는 올라가지 않는다.
-
-## R18 — 코드가 자기 이야기를 하게 한다
-- 주석은 **왜(Why)** 만 쓴다. 무엇(What)은 코드 자체가 말하게.
-- 설명이 필요하면 **이름·구조**를 먼저 고친다.
-- 주석은 검증되지 않고 썩는다. 코드와 주석이 어긋나면 코드가 이긴다.
-
-## R19 — 병렬로 리팩터링한다
-- 큰 리팩터링은 **별도 브랜치·워크트리**에서 병행한다 (이 프로젝트의 `scripts/create-symlinked-worktrees.sh` 활용).
-- 기존 인터페이스를 유지한 채 점진 교체. 빅뱅 머지는 피한다.
-- 새 구현이 올라가면 호출처를 순차 이전.
-
-## R20 — 수학을 한다
-- 성능·메모리 결정은 **숫자로** 한다. "느낌"이 아니라 프레임 예산(모바일 30fps ≈ 22ms), 힙 할당량, O(n).
-- 알고리즘은 Big-O로 비교. 상수항은 실제 n이 작을 때만 신경 쓴다.
-- 숫자 없는 "성능 걱정"은 R5에 해당한다.
-
-## R21 — 때로는 그냥 망치로 못을 박는다
-- 기계적·반복적 작업은 **기계적으로** 처리한다.
-- 모든 문제에 영리한 해법이 필요하지 않다.
-- 자동화가 가능하면 자동화. 그게 아니면 그냥 빠르게.
+왜: 사용처 1곳에서 제네릭·추상·래퍼를 만들면 **문제보다 코드가 더 복잡**해진다. 수요가 생기면 그때 올린다(→ R4).
 
 ---
 
-## 에이전트의 기본 태도
+## R2 — 버그는 전염된다
 
-- 이 21개 규칙은 **서로 보완**한다. 하나만 집착해서 다른 걸 어기지 않는다.
-- 특히 R1, R4, R5, R8, R18은 **에이전트가 자주 어기는 방향**이다 — 과도한 추상화, 예측 최적화, 주석 남발, 방어 코드. 의식적으로 피한다.
-- 규칙과 프로젝트 [`RULES.md`](../../RULES.md)가 충돌하면 프로젝트 RULES.md 우선 (불변 제약).
+DON'T
+```csharp
+// DamageCalc가 방어력을 두 번 곱하는 버그 발견 → 급한 대로 호출부에서 sqrt로 보정
+float displayed = Mathf.Sqrt(calc.Compute(atk, def));
+```
+
+DO
+```csharp
+// 원인을 그 자리에서 수정 + 회귀 테스트 추가
+// DamageCalc 내부의 중복 곱셈 제거
+float Compute(int atk, int def) => Mathf.Max(0, atk - def);
+// Tests/EditMode/DamageCalcTests.cs 에 케이스 추가
+```
+
+왜: 호출부가 버그에 적응한 코드가 쌓이면 **원 버그를 고칠 수 없게 된다**. 발견 즉시 뿌리부터 고친다.
+
+---
+
+## R3 — 좋은 이름이 최고의 문서
+
+DON'T
+```csharp
+public class Manager
+{
+    public void Process(object data) { ... }
+    public bool Check() => _flag;
+}
+```
+
+DO
+```csharp
+public class InventoryRepository
+{
+    public void SaveItem(InventoryItem item) { ... }
+    public bool IsFull => _slots.Count >= Capacity;
+}
+```
+
+왜: `Manager`, `Helper`, `Util`, `Data`, `Info`는 아무 말도 하지 않는다. 주석으로 이름을 설명하고 싶어지면 **이름을 고친다**.
+
+---
+
+## R4 — 일반화는 세 번째 사례부터
+
+DON'T
+```csharp
+// 사례 1: 플레이어 공격 — 구현
+// 사례 2: 적 공격 등장 → 즉시 Generic<T>로 추출
+public class AttackSystem<T> where T : ICombatant { ... }
+```
+
+DO
+```csharp
+// 사례 1, 2 는 별도 클래스로 나란히 둔다
+public class PlayerAttack { ... }
+public class EnemyAttack  { ... }
+// 사례 3이 등장하는 순간, 공통 부분을 추출한다
+```
+
+왜: 두 사례로 일반화하면 **잘못된 모양**이 굳어져 세 번째 케이스가 끼지 않는다. 중복 2회는 허용 비용이다.
+
+---
+
+## R5 — 최적화의 첫 수업은 "최적화하지 말 것"
+
+DON'T
+```csharp
+// "string 연결은 느릴 거야" — 프로파일 없이 StringBuilder 남발
+var sb = new StringBuilder();
+sb.Append(user.Name);
+sb.Append(": ");
+sb.Append(msg);
+Log(sb.ToString());      // 메시지 한 줄에 불과
+```
+
+DO
+```csharp
+Log($"{user.Name}: {msg}");
+// 프로파일러가 여기를 핫스팟으로 지목하면 그때 StringBuilder 로 교체
+```
+
+왜: **측정 없이 최적화**하면 가독성만 잃는다. Unity Profiler·Profile Analyzer로 병목을 특정한 뒤에만 손댄다.
+
+---
+
+## R6 — 코드 리뷰는 세 가지 이유로 좋다
+
+DON'T
+```
+# 한 PR 에 UI 리팩터 + 전투 버그 + 렌더 최적화 + 오타 수정
+feat: a bunch of stuff
+ 43 files changed, +1843 −921
+```
+
+DO
+```
+PR #1  fix(combat): damage calc 음수 클램프
+PR #2  refactor(ui): inventory panel 분리
+PR #3  perf(rendering): shadow caster 줄이기
+```
+
+왜: 큰 PR은 **리뷰가 불가능**하다. 한 PR = 한 주제. 리뷰 부담이 커지면 쪼갠다.
+
+---
+
+## R7 — 실패 케이스를 제거한다
+
+DON'T
+```csharp
+public void TakeDamage(int amount)
+{
+    if (amount < 0) return;          // 호출자가 실수할 수 있음
+    if (this == null) return;        // 방어 코드 남발
+    currentHp -= amount;
+}
+```
+
+DO
+```csharp
+public readonly struct DamageAmount
+{
+    public readonly int Value;
+    public DamageAmount(int v) => Value = Math.Max(0, v); // 경계에서 1회 검증
+}
+
+public void TakeDamage(DamageAmount dmg)
+{
+    currentHp -= dmg.Value;           // 내부에선 믿고 쓴다
+}
+```
+
+왜: 타입으로 **잘못된 상태를 표현 불가능**하게 만들면 런타임 검증이 줄어든다. 검증은 시스템 경계에서 한 번만.
+
+---
+
+## R8 — 실행되지 않는 코드는 작동하지 않는다
+
+DON'T
+```csharp
+// if (false)  // old behavior — keep just in case
+// {
+//     DoLegacyThing();
+// }
+
+public void UnusedHelper() { ... }   // 호출처 없음
+```
+
+DO
+```csharp
+// 그냥 삭제한다. 과거 이력은 git log 에 있다.
+```
+
+왜: 죽은 코드는 **검증되지 않고 썩는다**. 남겨두면 언젠가 되살아나서 깨진다.
+
+---
+
+## R9 — 접혀서 읽히는 코드를 쓴다
+
+DON'T
+```csharp
+public void ExecuteTurn()
+{
+    // 120줄의 인라인 로직 — 입력 파싱, 유효성 검사, 데미지 계산,
+    // 상태 이상 적용, 애니메이션 재생, UI 업데이트, 네트워크 싱크...
+}
+```
+
+DO
+```csharp
+public void ExecuteTurn()
+{
+    var action = ParseInput();
+    if (!action.IsValid) return;
+
+    ApplyDamage(action);
+    TriggerAnimations(action);
+    BroadcastToPeers(action);
+}
+```
+
+왜: 함수를 **접었을 때 이름만 보고도** 흐름이 이해돼야 한다. 20~30줄 넘는 함수, 3단 이상 중첩은 추출 후보.
+
+---
+
+## R10 — 복잡성은 한 곳에 가둔다
+
+DON'T
+```csharp
+// 할인 로직이 여러 곳에 흩뿌려짐
+class CartUI   { void Refresh()  { if (isMember) price *= 0.9f; ... } }
+class Checkout { void Finalize() { if (isMember) price *= 0.9f; ... } }
+class Receipt  { void Build()    { if (isMember) price *= 0.9f; ... } }
+```
+
+DO
+```csharp
+class PricingService
+{
+    public Price Apply(Cart c, User u) { /* 모든 할인 로직 여기 */ }
+}
+// 다른 곳에선 PricingService.Apply 만 호출
+```
+
+왜: 복잡성이 **여러 모듈에 퍼지면** 변경 비용이 기하급수적으로 커진다. 어셈블리(`_Core`/`_UI`/`_Combat`/`_Rendering`)가 격리의 자연 단위.
+
+---
+
+## R11 — 2배 이상 좋은가?
+
+DON'T
+```
+제안: ECS 로 모든 시스템 재작성
+예상 이득: 평균 프레임 10% 개선, 특정 씬 5% 개선
+예상 비용: 3개월, 기존 코드 전면 교체
+→ GO
+```
+
+DO
+```
+제안: ECS 로 전투 시스템만 교체
+예상 이득: 전투 씬 프레임 200% 개선 (측정된 병목)
+예상 비용: 2주, 인터페이스 유지 채 병행 교체
+→ GO
+```
+
+왜: 마이너 개선을 위해 **기존 아키텍처를 갈아엎지 않는다**. 개선 요구가 누적되면 임계점에서 한 번에 교체.
+
+---
+
+## R12 — 큰 팀은 강한 컨벤션이 필요하다
+
+DON'T
+```csharp
+// CLAUDE.md 는 private 필드 _camelCase 인데, 내가 선호하는 m_ 적용
+public class Player : MonoBehaviour
+{
+    private int m_hp;
+}
+```
+
+DO
+```csharp
+public class Player : MonoBehaviour
+{
+    private int _hp;   // 프로젝트 컨벤션 준수
+}
+// 컨벤션 변경이 필요하면 아키텍트에게 제안 후 일괄 적용
+```
+
+왜: **일관성이 집단 생산성**을 만든다. 개인 취향으로 규약을 깨면 전체가 느려진다.
+
+---
+
+## R13 — 눈사태를 시작한 조약돌을 찾아라
+
+DON'T
+```csharp
+// 가끔 NullReferenceException 발생 → catch 로 덮음
+try { target.ApplyEffect(effect); }
+catch (NullReferenceException) { /* 그냥 무시 */ }
+```
+
+DO
+```csharp
+// "왜 target 이 null 인가?" 를 추적한다
+// → 풀에서 꺼낸 객체가 이미 Destroy 된 것이었음
+// → 풀 반환 시점을 바로잡아 근본 해결
+var pooled = _pool.Rent();
+try { pooled.ApplyEffect(effect); }
+finally { _pool.Return(pooled); }
+```
+
+왜: **증상을 덮으면 원인이 더 깊이 숨는다**. 예외를 삼키지 않는다. "왜"를 설명할 수 있을 때까지 파고든다.
+
+---
+
+## R14 — 코드에는 4가지 맛이 있다 (쉬운 문제엔 쉬운 코드)
+
+DON'T
+```csharp
+// "현재 체력 출력" 이라는 쉬운 문제에
+public interface IHealthPresenter { void Present(); }
+public class HealthPresenterFactory { ... }
+public class HealthPresenterRegistry { ... }
+```
+
+DO
+```csharp
+void OnGUI()
+{
+    GUI.Label(new Rect(10, 10, 100, 20), $"HP {player.Hp}");
+}
+```
+
+왜: **쉬운 문제에 Hard 기법**(팩토리·레지스트리·이벤트 버스)을 얹으면 전체가 어려워진다. 복잡한 기법은 복잡한 문제용.
+
+---
+
+## R15 — 잡초는 즉시 뽑는다
+
+DON'T
+```csharp
+// TODO: 나중에 리팩터 (2년째 방치)
+public void DoThingOldWay() { ... }
+```
+
+DO
+```csharp
+// 지금 고친다. 못 하면 즉시 티켓으로 기록한다.
+// - 5분 내 고칠 수 있는가? → 지금.
+// - 그보다 크면 → /task-done 의 도메인 승격 또는 이슈 트래커로.
+```
+
+왜: **작은 방치가 쌓여 시스템을 망친다**. "나중에"는 "영원히"다.
+
+---
+
+## R16 — 결과에서 거꾸로 설계한다
+
+DON'T
+```csharp
+// "이 클래스로 뭘 할 수 있지?" 부터 시작
+public class DataManager
+{
+    public List<Thing> GetAll() { ... }
+    public Dictionary<K,V> ConvertTo() { ... }
+    public async Task<Stream> Export() { ... }
+}
+// → 실제로 필요한 건 "지금 점수판 TOP 10 표시" 뿐이었음
+```
+
+DO
+```csharp
+// 필요한 결과: "점수판 TOP 10 표시"
+// 역산 → IScoreBoard.Top10() 한 메서드로 충분
+public interface IScoreBoard { IReadOnlyList<Score> Top10(); }
+```
+
+왜: "이 코드로 뭘 할 수 있나"가 아니라 **"이 결과를 내려면 어떤 코드가 필요한가"**로 시작.
+
+---
+
+## R17 — 때로 더 큰 문제가 더 쉽다
+
+DON'T
+```csharp
+void OnItemPickup(Item it)
+{
+    if      (it is HealthPotion h)  ApplyHeal(h);
+    else if (it is ManaPotion   m)  ApplyMana(m);
+    else if (it is Buff         b)  ApplyBuff(b);
+    else if (it is Debuff       d)  ApplyDebuff(d);
+    // ... 12개 더
+}
+```
+
+DO
+```csharp
+// 특수 케이스를 올려 일반화
+public interface IItem { void ApplyTo(Player p); }
+void OnItemPickup(IItem it) => it.ApplyTo(_player);
+// 단, R4 준수 — 세 번째 케이스가 나왔을 때만 올린다
+```
+
+왜: 특수 로직 10개보다 **원칙 1개**가 유지하기 쉽다. 단, 이른 일반화도 독이다(→ R4).
+
+---
+
+## R18 — 코드가 자기 이야기를 하게 한다
+
+DON'T
+```csharp
+// 플레이어 체력이 0 이하면 죽음 처리
+if (h <= 0) { d = true; a.Play("d"); } // h: hp, d: dead, a: animator
+```
+
+DO
+```csharp
+if (hp <= 0)
+{
+    isDead = true;
+    animator.Play(AnimationNames.Death);
+}
+// 주석 없이도 읽힌다
+```
+
+왜: 주석은 **WHY**만 쓴다. WHAT은 이름·구조가 말하게 한다. 주석은 검증되지 않고 썩는다 — 코드와 어긋나면 주석이 거짓말한다.
+
+---
+
+## R19 — 병렬로 리팩터링한다
+
+DON'T
+```
+git checkout -b refactor-everything
+# 3주간 트렁크와 단절된 채 작업
+# 머지 시 충돌 1,200건
+```
+
+DO
+```bash
+# 워크트리 병행 (이 프로젝트의 scripts/ 활용)
+./scripts/create-symlinked-worktrees.sh 2
+# worktrees/agent-0 에서 새 구현, 기존 인터페이스 유지
+# 호출처를 한 모듈씩 이전 → 각 이전은 작은 PR
+```
+
+왜: **big-bang 리팩터는 실패**한다. 인터페이스를 유지한 채 새 구현을 병행하고, 호출처를 점진적으로 옮긴다.
+
+---
+
+## R20 — 수학을 한다
+
+DON'T
+```
+"파티클 많이 쓰면 느릴 것 같은데 줄여야 되나?"
+(감에 의존)
+```
+
+DO
+```
+# 목표: 모바일 30fps → 프레임 예산 22ms (thermal 65%)
+# 현재 GPU 시간: 18ms, Particle.Draw: 6ms
+# 파티클을 2/3 줄이면 GPU 14ms, 예산 내 복귀
+# → 정량 근거로 결정
+```
+
+왜: 성능·메모리 결정은 **수치**로 한다. "느낌"은 R5 위반이다. Big-O, 바이트, 밀리초로 말한다.
+
+---
+
+## R21 — 때로는 그냥 망치로 못을 박는다
+
+DON'T
+```csharp
+// 50개 Prefab 의 레이어를 일괄 변경
+// → 자동화 스크립트 작성, 단위 테스트, 리뷰...
+// → 반나절 소모, 실제 작업은 2분
+```
+
+DO
+```
+- Prefab 열기 → Layer 선택 → 저장
+- 50번 반복
+- 15분 소요
+```
+
+왜: **반복적·창의력 불필요한 작업에 영리한 해법을 만들 필요 없다**. 자동화 비용이 작업 비용보다 크면 그냥 한다.
+
+---
+
+## 에이전트가 특히 자주 어기는 방향
+
+이 21개 중 에이전트가 **자동으로 과잉 제공**하는 경향이 있는 것들. 의식적으로 피한다:
+
+- **R1, R4** — 요청하지 않은 제네릭·추상화·인터페이스 추가
+- **R5** — "느릴 것 같아서" 하는 예측 최적화
+- **R7** 잘못된 해석 — 방어 코드 남발(`if (x == null) return;`)
+- **R8** — 주석 처리된 옛 코드 남김
+- **R15** — 현재 작업과 무관한 "잡초"까지 건드려 범위 폭증
+- **R18** — WHAT을 설명하는 장황한 주석
+
+범위를 벗어나는 개선이 보이면 **수행하지 말고 기록**한다 — `/task-done`의 도메인 승격, 또는 별도 티켓.
+
+---
+
+## 프로젝트 규칙과의 우선순위
+
+이 범용 규약과 프로젝트 [`RULES.md`](../../RULES.md)가 충돌하면 **프로젝트 RULES.md가 우선**한다 (불변 제약이기 때문). 예: R18이 "주석 최소화"를 권하지만 프로젝트 RULE-XX이 "public API에 XML doc comment 필수"라면 프로젝트 규칙을 따른다.
