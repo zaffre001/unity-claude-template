@@ -10,8 +10,10 @@
 #   2 — 프로젝트 루트 아님
 #   3 — Unity Editor 미설치
 #
-# macOS/Linux/Windows 모두에서 이미 같은 프로젝트로 Editor가 떠 있으면
-# 그 인스턴스가 전면으로 올라온다(Unity의 single-instance per-project 동작).
+# 같은 프로젝트로 이미 떠 있으면 그 인스턴스를 전면으로 올린다.
+# 다른 프로젝트(= 워크트리)로 이미 떠 있으면 새 인스턴스를 강제로 띄운다
+# (macOS `open -a` 는 기본적으로 기존 인스턴스에 args 를 포워드해버리므로
+#  `-n` 플래그가 없으면 두 번째 워크트리가 열리지 않는다).
 
 set -euo pipefail
 
@@ -21,6 +23,7 @@ if [ ! -f ProjectSettings/ProjectVersion.txt ]; then
 fi
 
 UNITY_VERSION=$(awk '/m_EditorVersion:/ {print $2; exit}' ProjectSettings/ProjectVersion.txt)
+PROJECT_PATH="$(pwd)"
 
 case "$(uname -s)" in
     Darwin)
@@ -34,7 +37,11 @@ Install Unity $UNITY_VERSION via Unity Hub, then retry.
 EOF
             exit 3
         fi
-        open -a "$UNITY_APP" --args -projectPath "$(pwd)"
+        if pgrep -fl "Unity.app/Contents/MacOS/Unity" 2>/dev/null | grep -qF " -projectPath $PROJECT_PATH"; then
+            open -a "$UNITY_APP" --args -projectPath "$PROJECT_PATH"
+        else
+            open -n -a "$UNITY_APP" --args -projectPath "$PROJECT_PATH"
+        fi
         ;;
     Linux)
         UNITY_BIN="$HOME/Unity/Hub/Editor/$UNITY_VERSION/Editor/Unity"
