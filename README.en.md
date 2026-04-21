@@ -56,44 +56,59 @@ Claude needs two small connectors to actually do work on your machine.
 
 ![Filesystem active](docs/images/03-filesystem-active.png)
 
-### 2-2. Claude Bridge connector (~1 minute)
+### 2-2. Claude Bridge connector (~2 minutes)
 
-**1)** Open a terminal and install the Python package:
+**1)** Open a terminal and set up `pipx` (skip if you already have it):
 
 ```bash
-pip3 install mcp
+brew install pipx
+pipx ensurepath
 ```
 
-**2)** Open Claude Desktop's config file:
+Windows: `python -m pip install --user pipx` → `python -m pipx ensurepath`.
+
+**2)** Install the bridge server (shipped with this template) via `pipx`:
+
+```bash
+pipx install ~/Documents/my-game/scripts/claude-bridge-mcp
+```
+
+Replace the path with where you unzipped the template. After install, a `claude-bridge-mcp` command lands in your PATH. Verify with `which claude-bridge-mcp`.
+
+> **Why pipx, not pip?** On macOS with Homebrew Python, plain `pip install mcp` fails with `externally-managed-environment`. pipx installs the server into its own isolated venv and only exposes the CLI command — no import conflicts.
+
+**3)** Open Claude Desktop's config file:
 
 - macOS: Finder → `Cmd+Shift+G` → paste `~/Library/Application Support/Claude/` → open `claude_desktop_config.json` in a text editor
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-**3)** Add a `claude-bridge` entry under `mcpServers`:
+**4)** Add a `claude-bridge` entry under `mcpServers`:
 
 ```json
 {
   "mcpServers": {
     "filesystem": { "...": "..." },
     "claude-bridge": {
-      "command": "python3",
-      "args": [
-        "/Users/YOUR_NAME/Documents/my-game/scripts/claude-bridge-mcp/server.py"
-      ]
+      "command": "claude-bridge-mcp",
+      "env": {
+        "CLAUDE_BRIDGE_PROJECT": "/Users/YOUR_NAME/Documents/my-game"
+      }
     }
   }
 }
 ```
 
-**Replace the path** with where you unzipped the template.
+`CLAUDE_BRIDGE_PROJECT` must be your **Unity project root** (the folder that contains `ProjectSettings/`).
 
-**4)** Quit Claude Desktop completely (Cmd+Q on macOS) and relaunch.
+**5)** Quit Claude Desktop completely (Cmd+Q on macOS) and relaunch.
 
-**5)** Sanity-check in a new chat:
+**6)** Sanity-check in a new chat:
 
 > Call the `unity_bridge_status` tool and show me the result.
 
 If `project_root` points at your template folder, the bridge is live. `editor_running: false` is expected — Unity isn't running yet.
+
+**Updating:** after `git pull` to the latest template, re-run `pipx install --force ~/Documents/my-game/scripts/claude-bridge-mcp`.
 
 ---
 

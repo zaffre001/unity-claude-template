@@ -23,3 +23,7 @@ CLAUDE.local.md
 
 # ClaudeBridge IPC (런타임 큐, 버전 컨트롤 제외)
 /.claude-bridge/
+
+# Python pipx 빌드 찌꺼기 (scripts/claude-bridge-mcp/ 안에서 pipx install 시 생성)
+scripts/claude-bridge-mcp/build/
+scripts/claude-bridge-mcp/*.egg-info/
