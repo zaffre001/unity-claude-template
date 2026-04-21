@@ -29,7 +29,8 @@ namespace Project.Editor.ClaudeBridge
             // 배치 모드에서는 상주 서버를 시동하지 않는다 (ClaudeBridgeBatch가 직접 처리).
             if (Application.isBatchMode) return;
 
-            if (EditorPrefs.GetBool(PrefKey_AutoStart, false))
+            // 최초 기동 시에도 자동 시작되도록 default=true. Stop을 명시적으로 누르면 false로 저장되어 그 이후엔 뜨지 않는다.
+            if (EditorPrefs.GetBool(PrefKey_AutoStart, true))
                 Start();
         }
 
