@@ -3,7 +3,7 @@
 ClaudeBridge MCP Server
 =======================
 
-ClaudeBridge의 파일 기반 IPC를 MCP 툴 두 개로 감싸는 얇은 서버.
+ClaudeBridge의 파일 기반 IPC를 MCP 툴 몇 개로 감싸는 얇은 서버.
 
 Claude Desktop에 등록하면 Claude가 파일 read/write 루프 없이
 `unity_call(op, args)` 한 번으로 Unity Editor 조작을 끝낸다.
@@ -11,26 +11,37 @@ Claude Desktop에 등록하면 Claude가 파일 read/write 루프 없이
 툴:
     unity_call(op, args)       — ClaudeBridge op 하나 실행 후 결과 반환
     unity_batch_flush()        — inbox에 쌓인 커맨드를 headless Unity로 일괄 실행
+    unity_bridge_status()      — 현재 상태 스냅샷
 
 왜 얇게 만드나:
     ClaudeBridge 본체(Unity C#)가 유일한 실행 주체여야 한다.
     Python은 파일 쓰기/읽기·타임아웃·배치 트리거만 담당.
     op 추가는 C# 쪽에만 하면 되고 이 서버는 그대로 통과시킨다.
 
-설치:
-    pip install mcp
+설치 (pipx 권장):
+    pipx install /absolute/path/to/unity-claude-template/scripts/claude-bridge-mcp
+
+    → `claude-bridge-mcp` 커맨드가 PATH에 생성된다.
 
 Claude Desktop 등록 (claude_desktop_config.json):
     {
       "mcpServers": {
         "claude-bridge": {
-          "command": "python3",
-          "args": ["/absolute/path/to/unity-claude-template/scripts/claude-bridge-mcp/server.py"]
+          "command": "claude-bridge-mcp",
+          "env": {
+            "CLAUDE_BRIDGE_PROJECT": "/absolute/path/to/your/unity/project"
+          }
         }
       }
     }
 
-    project root는 server.py 위치에서 자동 추론되므로 env var 불필요.
+    pipx는 패키지를 격리된 venv에 깔기 때문에 server.py의 __file__ 로 프로젝트 루트를
+    추론할 수 없다. CLAUDE_BRIDGE_PROJECT env var가 필요하다.
+
+개발 모드 (설치 없이 직접 실행):
+    cd scripts/claude-bridge-mcp
+    python -m claude_bridge_mcp.server
+    → 이 경우엔 __file__ 위치에서 루트를 자동 추론 시도.
 """
 from __future__ import annotations
 
@@ -47,18 +58,44 @@ try:
     from mcp.server.fastmcp import FastMCP
 except ImportError:
     sys.stderr.write(
-        "ERROR: `mcp` 패키지가 필요합니다. 설치: pip install mcp\n"
+        "ERROR: `mcp` 패키지를 찾을 수 없습니다.\n"
+        "이 서버는 pipx 로 설치해야 합니다:\n"
+        "  pipx install /path/to/unity-claude-template/scripts/claude-bridge-mcp\n"
+        "Claude Desktop 설정에서는 command를 `claude-bridge-mcp`로 지정하세요.\n"
     )
     sys.exit(1)
 
 
-# ── 프로젝트 루트 자동 추론 ─────────────────────────────────────────────
-# scripts/claude-bridge-mcp/server.py → ../.. 가 프로젝트 루트.
-# env var CLAUDE_BRIDGE_PROJECT 로 덮어쓸 수 있음.
-SCRIPT_PATH = Path(__file__).resolve()
-PROJECT_ROOT = Path(
-    os.environ.get("CLAUDE_BRIDGE_PROJECT", SCRIPT_PATH.parent.parent.parent)
-).resolve()
+# ── 프로젝트 루트 결정 ──────────────────────────────────────────────────
+# 우선순위:
+#   1) env var CLAUDE_BRIDGE_PROJECT — pipx 설치 시 반드시 이걸 쓴다
+#   2) __file__ 위치에서 자동 추론 — `python -m claude_bridge_mcp.server`로 직접 돌릴 때만 작동
+#      (pipx는 ~/.local/pipx/venvs/... 아래에 설치하므로 자동 추론 불가)
+def _resolve_project_root() -> Path:
+    env = os.environ.get("CLAUDE_BRIDGE_PROJECT")
+    if env:
+        p = Path(env).expanduser().resolve()
+        if not (p / "ProjectSettings" / "ProjectVersion.txt").exists():
+            sys.stderr.write(
+                f"WARNING: CLAUDE_BRIDGE_PROJECT={p} but no ProjectSettings/ProjectVersion.txt found.\n"
+                "Check the path in claude_desktop_config.json.\n"
+            )
+        return p
+
+    # scripts/claude-bridge-mcp/claude_bridge_mcp/server.py → parents[3]이 프로젝트 루트
+    candidate = Path(__file__).resolve().parents[3]
+    if (candidate / "ProjectSettings" / "ProjectVersion.txt").exists():
+        return candidate
+
+    sys.stderr.write(
+        "ERROR: Could not locate Unity project root.\n"
+        "Set CLAUDE_BRIDGE_PROJECT in claude_desktop_config.json:\n"
+        '  "env": {"CLAUDE_BRIDGE_PROJECT": "/absolute/path/to/your/unity/project"}\n'
+    )
+    sys.exit(1)
+
+
+PROJECT_ROOT = _resolve_project_root()
 
 INBOX = PROJECT_ROOT / ".claude-bridge" / "inbox"
 OUTBOX = PROJECT_ROOT / ".claude-bridge" / "outbox"
@@ -297,5 +334,10 @@ def unity_bridge_status() -> dict[str, Any]:
     }
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """pipx [project.scripts] 진입점. 쉘에서 `claude-bridge-mcp`로 호출되면 여기로 온다."""
     mcp.run()
+
+
+if __name__ == "__main__":
+    main()

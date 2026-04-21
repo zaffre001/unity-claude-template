@@ -1,0 +1,22 @@
+[project]
+name = "claude-bridge-mcp"
+version = "0.2.0"
+description = "MCP server that lets Claude Desktop drive Unity Editor via ClaudeBridge file IPC"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "zaffre" }]
+license = { text = "MIT" }
+dependencies = [
+    "mcp>=1.0.0",
+]
+
+[project.scripts]
+# 이 이름이 pipx 설치 후 쉘·Claude Desktop 설정에서 부를 명령입니다.
+claude-bridge-mcp = "claude_bridge_mcp.server:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["claude_bridge_mcp*"]
