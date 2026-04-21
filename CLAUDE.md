@@ -116,7 +116,20 @@ public class GameManager : MonoBehaviour
 - 브레이크포인트에서 멈춘 후 반드시 `continue`를 호출해야 에디터가 재개된다.
 - 디버깅 완료 후 Code Optimization을 Release로 되돌린다.
 
-## 8. 참고 파일
-- 불변 제약: `RULES.md`
-- 스킬(공정 정의): `.claude/skills/`
-- 경로별 규칙: `.claude/rules/`
+## 8. 지식 계층 & 인덱스
+
+에이전트는 `/task-start`에서 [`.claude/INDEX.md`](.claude/INDEX.md)를 먼저 읽고, 작업 주제에 매칭되는 파일만 선별 로드한다. 이래서 토큰과 시간을 아낀다.
+
+| 계층 | 위치 | 성격 |
+|---|---|---|
+| 1. 언어·엔진 (범용) | `.claude/knowledge/*.md` | Unity / C#.NET / 코딩 규약 (Zimmerman 21 Rules 포함) |
+| 2. 프로젝트 도메인 | 이 파일 + `.claude/domain/*.md` | 이 프로젝트만의 기획·시스템·유기적 관계 |
+| 3. 불변 제약 | `RULES.md` | 위반 시 시스템이 망가지는 프로젝트 고유 규칙 (RULE-01 ~) |
+| 4. 경로 스코프 | `.claude/rules/*.md` | 경로·파일 타입별 규칙 |
+| 5. 스킬 (on-demand) | `.claude/skills/*.md` | `/task-start`, `/task-done`, `/self-update`, `/design`, `/run` |
+
+추가로:
+- `CLAUDE.local.md` — 개인·실시간 지침 (`.gitignore` 포함, 버전 컨트롤 제외)
+- `.claude/domain/` — `/task-done`이 새 도메인 지식을 쌓는 곳 (빈 스켈레톤에선 비어 있음)
+
+지식 계층의 **1계층 RULES**(`.claude/knowledge/RULES.md`, 범용 코딩 규약)와 **3계층 RULES**(루트 `RULES.md`, 이 프로젝트 불변 제약)를 혼동하지 않는다. 전자는 포크해 쓰는 모든 프로젝트에 그대로, 후자는 이 프로젝트 전용.
