@@ -1,22 +1,30 @@
 ---
 name: run
-description: Unity 플레이어를 빌드하고 바이너리를 실행합니다. 산출물은 프로젝트 상위 `builds/` 폴더에 `{label}-{branch}-{shortsha}[-dirty]-{target}-{timestamp}/` 이름으로 저장되어 메인·워크트리·커밋을 식별할 수 있습니다. 인자로 플랫폼을 받습니다 — mac | win | linux | webgl | android | ios (기본: 현재 OS).
+description: Unity 플레이어를 빌드하고 실행하거나(`mac|win|linux|webgl|android|ios`), Editor GUI를 띄우거나(`editor`), 큐에 쌓인 ClaudeBridge 커맨드를 헤드리스로 일괄 실행(`bridge`)합니다. 빌드 산출물은 프로젝트 상위 `builds/{label}-{branch}-{shortsha}[-dirty]-{target}-{timestamp}/`에 저장. 인자 없으면 현재 OS로 빌드.
 ---
 
 # Skill: /run
 
-유니티 플레이어를 빌드하고, 가능한 경우 빌드된 바이너리를 실행합니다.
+인자 모드에 따라 세 가지 흐름:
 
-실제 작업은 두 파일이 수행합니다:
-- [`scripts/run.sh`](../../scripts/run.sh) — 플랫폼 감지, 모듈 확인, 핑거프린트, Unity 호출, 런치
-- [`Assets/Editor/RunBuildCommand.cs`](../../Assets/Editor/RunBuildCommand.cs) — Unity batchmode에서 호출되는 빌드 메서드 (`Project.Editor.RunBuildCommand.Build`)
+| 인자 | 동작 | 내부 호출 |
+|---|---|---|
+| 없음 / `mac` / `win` / `linux` / `webgl` / `android` / `ios` | 플레이어 빌드 + 런치 | `scripts/run.sh {platform}` |
+| `editor` | Unity Editor GUI를 현재 프로젝트로 연다. 빌드 안 함 | `scripts/run-editor.sh` |
+| `bridge` | `.claude-bridge/inbox/` 의 JSON 커맨드들을 헤드리스 Unity로 일괄 실행 | `scripts/bridge-run.sh` |
 
-이 스킬 파일은 인자 파싱과 출력 해석만 담당합니다.
+각 모드의 실제 작업 파일:
+- 빌드: [`scripts/run.sh`](../../scripts/run.sh) + [`Assets/Editor/RunBuildCommand.cs`](../../Assets/Editor/RunBuildCommand.cs) (`Project.Editor.RunBuildCommand.Build`)
+- Editor: [`scripts/run-editor.sh`](../../scripts/run-editor.sh) (`open -a Unity --args -projectPath`)
+- Bridge: [`scripts/bridge-run.sh`](../../scripts/bridge-run.sh) + [`Assets/Editor/ClaudeBridge/ClaudeBridgeBatch.cs`](../../Assets/Editor/ClaudeBridge/ClaudeBridgeBatch.cs) (`Project.Editor.ClaudeBridge.ClaudeBridgeBatch.Run`)
+
+이 스킬 파일은 인자 분기와 출력 해석만 담당한다.
 
 ---
 
 ## 1. 인자
 
+### 빌드 (기본)
 - **없음** → 현재 OS로 기본 (`mac` / `win` / `linux` 자동 감지)
 - **`mac`** / `macos` / `osx` → `StandaloneOSX`
 - **`win`** / `windows` → `StandaloneWindows64`
@@ -25,14 +33,22 @@ description: Unity 플레이어를 빌드하고 바이너리를 실행합니다.
 - **`android`** → `Android` (APK)
 - **`ios`** → `iOS` (Xcode 프로젝트, macOS 호스트 필요)
 
+### 편집
+- **`editor`** → Unity Editor GUI 실행. 빌드 없음. Unity가 이미 같은 프로젝트로 떠 있으면 그 인스턴스가 전면화됨.
+
+### 브릿지 (헤드리스)
+- **`bridge`** → `.claude-bridge/inbox/*.json` 에 드롭된 커맨드를 Unity `-batchmode`로 일괄 처리. 결과는 `.claude-bridge/outbox/*.json`. 사용자가 Editor를 열어 둘 필요 없음.
+
 ---
 
 ## 2. 실행
 
-프로젝트 루트(메인 또는 워크트리) 에서:
+프로젝트 루트(메인 또는 워크트리) 에서 인자별로:
 
 ```
-./scripts/run.sh {platform}
+./scripts/run.sh {platform}      # 빌드
+./scripts/run-editor.sh          # Editor GUI
+./scripts/bridge-run.sh          # ClaudeBridge 헤드리스 처리
 ```
 
 ## 3. 출력 구조
@@ -55,12 +71,23 @@ description: Unity 플레이어를 빌드하고 바이너리를 실행합니다.
 
 스크립트는 종료 코드로 실패 원인을 구분합니다. 그대로 사용자에게 전달하세요.
 
+### 공통
 | 종료 코드 | 의미 | 대응 |
 |---|---|---|
-| `2` | 프로젝트 루트가 아님 / 플랫폼 인자 오타 | 경로 확인 후 재시도 |
+| `2` | 프로젝트 루트가 아님 / 인자 오타 | 경로 확인 후 재시도 |
 | `3` | Unity Editor 미설치 | 스크립트가 출력한 Unity Hub 설치 안내를 그대로 전달. 버전은 `ProjectSettings/ProjectVersion.txt` 기준 |
+
+### 빌드 (`run.sh`) 추가
+| 종료 코드 | 의미 | 대응 |
+|---|---|---|
 | `4` | **플랫폼 모듈 미설치** | 스크립트가 출력한 Unity Hub GUI 절차 + CLI 명령을 그대로 전달. 임의로 모듈을 자동 설치하지 말 것 (시간 오래 걸림, 대화형 프롬프트 가능성) |
 | `5` | 빌드 실패 | `unity-build.log` 끝 40줄을 스크립트가 출력함. 그 중 컴파일 에러·예외 스택트레이스를 요약해 보고 |
+
+### 브릿지 (`bridge-run.sh`) 추가
+| 종료 코드 | 의미 | 대응 |
+|---|---|---|
+| `1` | 일부/전부 커맨드 실패 | `.claude-bridge/outbox/*.json` 의 `ok:false` 항목 찾아서 `error` 필드 요약. 파일별 `id`로 어느 커맨드가 실패했는지 추적 |
+| `4` | Unity 프로세스 자체 실패 | `.claude-bridge/logs/bridge-*.log` 말미 확인. 주로 컴파일 에러 또는 `Run` 메서드 실행 중 예외 |
 
 ### 자주 나오는 빌드 실패
 
@@ -71,7 +98,8 @@ description: Unity 플레이어를 빌드하고 바이너리를 실행합니다.
 
 ## 5. 금지 사항
 
-- **빌드 스크립트·`RunBuildCommand.cs`를 임의로 수정하지 않는다.** 수정이 필요해 보이면 아키텍트에게 보고 후 승인받는다.
+- **빌드 스크립트·`RunBuildCommand.cs`·`ClaudeBridgeBatch.cs`를 임의로 수정하지 않는다.** 수정이 필요해 보이면 아키텍트에게 보고 후 승인받는다.
 - **플랫폼 모듈을 자동 설치하지 않는다.** 가이드만 제시.
 - **다른 워크트리의 빌드 결과를 삭제하지 않는다.** `builds/` 정리는 별도 지시가 있을 때만.
-- **`unity-build.log` 전문을 대화창에 붙여넣지 않는다.** 요약 + 원인 라인 위주로 보고.
+- **`unity-build.log` / `bridge-*.log` 전문을 대화창에 붙여넣지 않는다.** 요약 + 원인 라인 위주로 보고.
+- **`bridge` 모드에서 Editor가 이미 열려 있으면 경고한다.** 같은 프로젝트를 동시에 여는 Unity 인스턴스는 파일 락으로 충돌한다. 사용자에게 "Editor 닫고 다시 시도" 안내.

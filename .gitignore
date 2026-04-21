@@ -20,3 +20,6 @@ Thumbs.db
 
 # Claude Code 로컬 지침 (개인용, 버전 컨트롤 제외)
 CLAUDE.local.md
+
+# ClaudeBridge IPC (런타임 큐, 버전 컨트롤 제외)
+/.claude-bridge/

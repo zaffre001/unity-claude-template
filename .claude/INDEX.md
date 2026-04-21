@@ -32,6 +32,11 @@ C#/.NET 언어 핵심.
 - **keywords:** value type, reference type, struct, class, stack, heap, boxing, unboxing, string, StringBuilder, event, delegate, subscribe, unsubscribe, generic, constraint, Nullable, nullable, null coalescing, equality, Equals, GetHashCode, virtual, override, sealed, async, await, CancellationToken, UniTask, property, field, exception, LINQ, IEnumerable, foreach, interface, List<T>, Dictionary, HashSet, Queue, Stack, ArrayList, Hashtable
 - **when to read:** 새 타입 설계, async·이벤트 구현, 자료구조 선택, 박싱/할당 판단, C# 스펙 관련 결정
 
+### [knowledge/unity-editor-automation.md](knowledge/unity-editor-automation.md)
+ClaudeBridge 스택 (C# op + Python MCP + /run + /make-asset 연동) 운용 지침.
+- **keywords:** ClaudeBridge, unity_call, unity_batch_flush, bridge-run, editor automation, headless, batchmode, prefab stage, prefab variant, nested prefab, inbox, outbox, Component.SetRectTransform, Prefab.Open, Prefab.CreateVariant, InstantiatePrefab, make-asset, run editor, run bridge
+- **when to read:** Unity 씬/프리팹/컴포넌트 조작이 필요할 때, 에이전트가 Editor 작업을 자동 실행하려 할 때, ClaudeBridge op 추가·확장 작업
+
 ---
 
 ## Level 2 — Project Domain (이 프로젝트 전용)
@@ -77,15 +82,18 @@ C#/.NET 언어 핵심.
 
 ## Level 5 — Skills (on-demand)
 
-에이전트가 명시적으로 `/name`으로 호출하는 공정.
+에이전트가 `/name`으로 호출하는 공정. **사용자 명령을 기다리지 말고 적절한 타이밍에 에이전트가 선제적으로 호출해도 되는 스킬은 "자동 호출 가능" 표시.**
 
-| Skill | 역할 | 호출 타이밍 |
-|---|---|---|
-| [task-start](skills/task-start.md) | 작업 착수 브리핑 (이 인덱스 활용) | 모든 작업 시작 |
-| [task-done](skills/task-done.md) | 작업 마무리 + 도메인 지식 승격 | 모든 작업 완료 |
-| [self-update](skills/self-update.md) | 세션 지식을 5개 계층에 승격 제안 | 새 패턴 발견 시 |
-| [design](skills/design.md) | 기획 → 단계별 에이전트 프롬프트 | 새 기획 받았을 때 |
-| [run](skills/run.md) | Unity 플레이어 빌드 + 실행 | 검증 빌드 필요 시 |
+| Skill | 역할 | 호출 타이밍 | 자동 호출 |
+|---|---|---|---|
+| [task-start](skills/task-start.md) | 작업 착수 브리핑 (이 인덱스 활용) | 모든 작업 시작 | ✓ |
+| [task-done](skills/task-done.md) | 작업 마무리 + 도메인 지식 승격 | 모든 작업 완료 | ✓ |
+| [self-update](skills/self-update.md) | 세션 지식을 5개 계층에 승격 제안 | 새 패턴 발견 시 | — |
+| [design](skills/design.md) | 기획 → 단계별 에이전트 프롬프트 | 새 기획 받았을 때 | — |
+| [run](skills/run.md) | Unity 빌드 / Editor 실행(`editor`) / ClaudeBridge 헤드리스(`bridge`) | 검증·실행·Editor 구동 필요 시 | **✓** — 빌드 확인, Editor 띄워야 할 때, inbox 커맨드 flush가 필요할 때 에이전트 판단으로 호출 |
+| [make-asset](skills/make-asset.md) | Unity 어셋 제작: UGUI 프리팹 / 파티클 / 프리미티브 모델 / **SVG 직접 그려 PNG 래스터화한 아이콘 스프라이트** / 사용자 제공 이미지 임포트 | 참조할 어셋이 Assets/ 아래 없는데 필요할 때 | **✓** — 씬 조립 중 missing prefab 발견, 프로토타이핑 첫 어셋 필요 시, 심볼/아이콘(하트·별·체크 등)이 요구될 때 SVG로 즉석 생성 |
+
+**자동 호출의 의미**: `/run editor`·`/run bridge`·`/make-asset`은 사용자가 입력한 적 없어도 에이전트가 판단해서 호출 가능. 호출 전에 한 줄로 사용자에게 알리되, 무응답 시 합리적 기본값으로 진행하고 나중에 되돌릴 수 있게 기록을 남긴다.
 
 ---
 
