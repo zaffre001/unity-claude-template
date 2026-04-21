@@ -1,4 +1,6 @@
-# ClaudeProject — CLAUDE.md
+# Unity Claude Template — CLAUDE.md
+
+> Claude Code 에이전트 기반 유니티 프로젝트 템플릿. 포크해서 본인 게임 이름으로 바꿔 쓰세요.
 
 ## 1. 프로젝트 개요
 - **엔진**: Unity 2022.3 LTS
