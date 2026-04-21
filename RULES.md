@@ -18,8 +18,9 @@
 
 위반 여부 확인:
 ```
-grep -r "InitializeOnLoad" Assets/_Project/ --include="*.cs"
-grep -r '"autoReferenced": true' Assets/
+# 대괄호 포함 매치. "RuntimeInitializeOnLoadMethod" false positive 차단
+grep -rE '\[InitializeOnLoad\]' Assets/ --include="*.cs"
+grep -r  '"autoReferenced": true' Assets/
 ```
 
 ---
