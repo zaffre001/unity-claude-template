@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "claude-bridge": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "scripts/claude-bridge-mcp",
+        "claude-bridge-mcp"
+      ]
+    }
+  }
+}

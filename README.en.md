@@ -13,8 +13,8 @@
 
 ## What this guide walks you through
 
-1. **Setup** (~20 min) — Unity, Claude Desktop, get the template
-2. **Wire up two connectors** (~5 min) — so Claude can touch your files and Unity
+1. **Setup** (~10 min) — Unity, Claude Code, get the template
+2. **Auto bootstrap** (~1 min) — one `/setup` command wires MCP + bridge
 3. **Warm-up: build Solitaire together** — get a feel for the tools
 4. **Clean up** — wipe the solitaire bits and reset the template
 5. **Pivot to your own game** — genre-specific guides + prompts you can copy
@@ -27,88 +27,59 @@
 | What you need | Where |
 |---|---|
 | Unity Hub + Unity 2022.3 LTS | [unity.com/download](https://unity.com/download) |
-| Claude Desktop app | [claude.ai/download](https://claude.ai/download) — macOS and Windows |
-| Python 3.10+ | macOS usually ships with it — check via `python3 --version`. Windows: [python.org](https://python.org) |
+| Claude Code desktop app | [claude.com/claude-code](https://www.anthropic.com/claude-code) — macOS and Windows. Run the installer |
 | This template | Top-right **Use this template** to fork into your account, or green **Code** button → **Download ZIP** |
 
 Unzip somewhere like `~/Documents/my-game`. **Keep the path ASCII-only and without spaces** — it avoids a lot of Unity import headaches.
 
+> **No Python, no pipx, no Filesystem MCP.** `/setup` handles everything — it installs `uv` (a Python environment manager) if missing and wires the bridge. On first run, `/setup` will show you a one-line install command for `uv` matching your OS (curl on macOS/Linux, PowerShell on Windows).
+
 ---
 
-## 2. Wire up two connectors in Claude Desktop
+## 2. Auto bootstrap — one `/setup` command
 
-Claude needs two small connectors to actually do work on your machine.
+**1)** Launch the Claude Code desktop app.
 
-- **Filesystem MCP** — read/write your project files
-- **Claude Bridge MCP** — drive the Unity Editor (ships in this template)
+**2)** Go to the **Code tab** and start a new session. In the prompt area, click **Project folder** and pick the template folder you unzipped (e.g. `~/Documents/my-game`). Drag-and-drop onto the window works too.
 
-### 2-1. Filesystem connector (~30 seconds)
+**3)** Claude Code auto-loads this project's `.mcp.json` and starts the bridge MCP server. If an approval dialog appears, click **Approve**.
 
-**1)** Claude Desktop → **Settings** → sidebar **Connectors** → top-right **Browse Connectors**
+**4)** Type `/` in the prompt box to see the command autocomplete, or just ask:
 
-![Settings → Connectors](docs/images/01-connector-filesystem.png)
+> /setup please.
 
-**2)** Find **Filesystem** in the list → click **Install**
+From here Claude runs **everything through its own Bash tool** — you don't copy-paste commands into a terminal:
 
-![Install Filesystem](docs/images/02-filesystem-install.png)
+- Detects your OS (`darwin` / `win32` / `linux`)
+- Runs `uv --version` to check for `uv` (harmless command, no permission prompt)
+- If `uv` is missing, Claude **executes the install command itself** (`curl ... | sh` on macOS/Linux, PowerShell one-liner on Windows). This is the only step that asks for a permission prompt — just click **Approve**
+- Verifies `.mcp.json` is in place at the project root (it ships with the template)
+- Calls `unity_bridge_status` to confirm Unity Editor detection and project path
+- Reports a checklist with only what was fixed or still needs attention
 
-**3)** When the toggle flips to **Active**, click **Configure** and pick your template folder.
+> **What you actually type: just two things** — (a) `/setup`, and (b) if `uv` isn't installed, click the **Approve** button on the install dialog. That's it. Claude drives every command through its own Bash tool — no copying paths, env vars, or installation steps.
 
-![Filesystem active](docs/images/03-filesystem-active.png)
+**5)** You'll get a summary like:
 
-### 2-2. Claude Bridge connector (~2 minutes)
+```
+Setup check
+  ✓ uv installed
+  ✓ .mcp.json found
+  ✓ Unity Editor detected: /Applications/Unity/Hub/Editor/2022.3.45f1/...
+  ✓ Bridge MCP responded: project_root = /Users/.../my-game
 
-**1)** Open a terminal and set up `pipx` (skip if you already have it):
-
-```bash
-brew install pipx
-pipx ensurepath
+Next
+  · /run editor to open Unity
+  · Head to §3 "Solitaire warm-up"
 ```
 
-Windows: `python -m pip install --user pipx` → `python -m pipx ensurepath`.
+> **Why is this so short?** The Claude Code desktop app auto-loads `.mcp.json` from the project root. This template's `.mcp.json` runs the bridge via `uv run` — `uv` works identically on macOS/Windows/Linux and manages its own venv, so no more pipx/pip/PATH gymnastics.
 
-**2)** Install the bridge server (shipped with this template) via `pipx`:
+**Updating the bridge:** just `git pull`. `uv run` picks up the new code on the next call — no reinstall needed.
 
-```bash
-pipx install ~/Documents/my-game/scripts/claude-bridge-mcp
-```
-
-Replace the path with where you unzipped the template. After install, a `claude-bridge-mcp` command lands in your PATH. Verify with `which claude-bridge-mcp`.
-
-> **Why pipx, not pip?** On macOS with Homebrew Python, plain `pip install mcp` fails with `externally-managed-environment`. pipx installs the server into its own isolated venv and only exposes the CLI command — no import conflicts.
-
-**3)** Open Claude Desktop's config file:
-
-- macOS: Finder → `Cmd+Shift+G` → paste `~/Library/Application Support/Claude/` → open `claude_desktop_config.json` in a text editor
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-
-**4)** Add a `claude-bridge` entry under `mcpServers`:
-
-```json
-{
-  "mcpServers": {
-    "filesystem": { "...": "..." },
-    "claude-bridge": {
-      "command": "claude-bridge-mcp",
-      "env": {
-        "CLAUDE_BRIDGE_PROJECT": "/Users/YOUR_NAME/Documents/my-game"
-      }
-    }
-  }
-}
-```
-
-`CLAUDE_BRIDGE_PROJECT` must be your **Unity project root** (the folder that contains `ProjectSettings/`).
-
-**5)** Quit Claude Desktop completely (Cmd+Q on macOS) and relaunch.
-
-**6)** Sanity-check in a new chat:
-
-> Call the `unity_bridge_status` tool and show me the result.
-
-If `project_root` points at your template folder, the bridge is live. `editor_running: false` is expected — Unity isn't running yet.
-
-**Updating:** after `git pull` to the latest template, re-run `pipx install --force ~/Documents/my-game/scripts/claude-bridge-mcp`.
+> **Prefer the Claude Code CLI?** It behaves identically — `.mcp.json`, `~/.claude.json`, `settings.json`, CLAUDE.md, and skills are all shared between the desktop app and CLI. Just `cd ~/Documents/my-game && claude`.
+>
+> **The Claude Desktop chat app is a different product.** Its `claude_desktop_config.json` has nothing to do with this template. If you insist on registering the bridge there, see `.claude/skills/setup.md` §5 "Legacy path" for the manual pipx route — not recommended.
 
 ---
 
@@ -116,7 +87,7 @@ If `project_root` points at your template folder, the bridge is live. `editor_ru
 
 > This section is a **practice run to get used to how the tools fit together** — the endgame is to clean this up and move to your real project. Don't focus on "how to make solitaire"; focus on "how to tell Claude to do things in Unity."
 
-Paste this into Claude Desktop:
+Paste this into Claude Code:
 
 > I've never used Unity before. This folder is the unity-claude-template. Let's build a Klondike Solitaire as practice.
 >
@@ -228,6 +199,21 @@ Claude drops per-area task files into `design/rainbow-fishing/`. Hand them out o
 ## 7. Skills you can use
 
 Skills are workflows you invoke with `/name`. Ones marked **auto** can be invoked by agents on your behalf without being explicitly asked.
+
+### `/setup` — first-time bootstrap
+
+Run this once per machine. Claude walks the checklist: OS detection → `uv` install check → `.mcp.json` verify → Unity Editor detection → Bridge MCP connectivity. Works on macOS, Windows, and Linux.
+
+**Does:**
+- Shows the one-line `uv` install command for your OS when missing (curl on macOS/Linux, PowerShell on Windows)
+- Verifies/repairs `.mcp.json` at the project root
+- Calls `mcp__claude-bridge__unity_bridge_status` to confirm project path + Unity detection
+- Reports a checklist (✓ / ✗) with concrete next steps
+
+**Example prompts**
+> /setup please.
+>
+> /setup — opening this on a new machine, run through the whole bootstrap.
 
 ### `/task-start` — scope & brief for a new task (auto)
 
@@ -362,8 +348,9 @@ Live under `.claude/skills/`. §7 above is a summary; each file has the full tre
 ### Unity Editor automation
 | Path | What it does |
 |---|---|
+| [`.mcp.json`](.mcp.json) | Project-scoped MCP server registration. Claude Code auto-loads it and launches the bridge via `uv run` — works identically on macOS/Windows/Linux |
 | [`Assets/Editor/ClaudeBridge/`](Assets/Editor/ClaudeBridge/README.md) | File-based IPC + 22 reflection-driven ops (Scene / GameObject / Component / Prefab / Asset / Reflection). Works with Editor open *and* headless |
-| [`scripts/claude-bridge-mcp/`](scripts/claude-bridge-mcp/README.md) | Thin Python MCP wrapper. Claude Desktop drives Unity via one `unity_call(op, args)` |
+| [`scripts/claude-bridge-mcp/`](scripts/claude-bridge-mcp/README.md) | Thin Python MCP wrapper. Claude Code drives Unity via one `unity_call(op, args)` |
 | [`scripts/run.sh`](scripts/run.sh) / [`run-editor.sh`](scripts/run-editor.sh) / [`bridge-run.sh`](scripts/bridge-run.sh) | The three shell scripts `/run` dispatches to |
 | [`Assets/Editor/ParallelAgentSetup.cs`](Assets/Editor/ParallelAgentSetup.cs) | Disables Domain Reload — Play Mode entry is effectively instant |
 | [`scripts/create-symlinked-worktrees.sh`](scripts/create-symlinked-worktrees.sh) | Git Worktree + symlink helpers for running multiple agents in parallel |
