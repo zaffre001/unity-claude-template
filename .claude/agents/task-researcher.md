@@ -59,7 +59,7 @@ Grep pattern="async\s+\w+\s+\w+\s*\(" type="cs"  # RULE-05 후보
 ```
 
 - 파일 목록을 먼저 뽑고(`output_mode: files_with_matches`), 핵심만 `Read`로 펼친다.
-- 호출 그래프가 필요하면 LSP(`LSP.findReferences`/`incomingCalls`) 사용 — 미연결 시 Grep 폴백(`.claude/skills/debug.md` §2-0).
+- 호출 그래프가 필요하면 LSP(`LSP.findReferences`/`incomingCalls`) 사용 — 미연결 시 Grep 폴백(`.claude/skills/debug/SKILL.md` §2-0).
 
 ### STEP 3 — 구현 설계
 

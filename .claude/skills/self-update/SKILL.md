@@ -17,7 +17,7 @@ description: 현재 세션에서 습득한 지식을 5개 계층(RULES / knowled
 | 2 | **프로젝트 도메인** | `.claude/domain/*.md`, `CLAUDE.md` | /task-done, /self-update |
 | 3 | **불변 제약** | `RULES.md` | /self-update (엄격 관리) |
 | 4 | **경로·파일 타입 스코프** | `.claude/rules/*.md` | /self-update |
-| 5 | **스킬 (공정)** | `.claude/skills/*.md` | 아키텍트 직접 |
+| 5 | **스킬 (공정)** | `.claude/skills/*/SKILL.md` | 아키텍트 직접 |
 
 실시간·개인 메모는 **`CLAUDE.local.md`** (gitignore).
 

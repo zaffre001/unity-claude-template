@@ -79,7 +79,7 @@ Next
 
 > **Prefer the Claude Code CLI?** It behaves identically — `.mcp.json`, `~/.claude.json`, `settings.json`, CLAUDE.md, and skills are all shared between the desktop app and CLI. Just `cd ~/Documents/my-game && claude`.
 >
-> **The Claude Desktop chat app is a different product.** Its `claude_desktop_config.json` has nothing to do with this template. If you insist on registering the bridge there, see `.claude/skills/setup.md` §5 "Legacy path" for the manual pipx route — not recommended.
+> **The Claude Desktop chat app is a different product.** Its `claude_desktop_config.json` has nothing to do with this template. If you insist on registering the bridge there, see `.claude/skills/setup/SKILL.md` §5 "Legacy path" for the manual pipx route — not recommended.
 
 ---
 
