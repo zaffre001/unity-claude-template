@@ -14,8 +14,8 @@
 
 기능 전용으로 **새로 만드는** 프리팹·머티리얼·텍스처는 `Assets/Prefabs/` 같은 공유 심링크 폴더가 아니라 **그 기능을 쓰는 스크립트 바로 옆**에 둔다.
 
-- ✅ `Assets/Scripts/_UI/Game2048/Celebration/CelebrationVfx.prefab`
-- ✅ `Assets/Scripts/_UI/Game2048/PauseMenu/PauseMenu.prefab`
+- ✅ `Assets/Scripts/_UI/MyGame/Celebration/CelebrationVfx.prefab`
+- ✅ `Assets/Scripts/_UI/MyGame/PauseMenu/PauseMenu.prefab`
 - ❌ `Assets/Prefabs/PauseMenu.prefab` — 심링크 폴더라 워크트리 git 이 새 파일을 못 본다
 
 ### 왜 이 규칙이 중요한가
@@ -26,7 +26,7 @@
 2. 워크트리의 `git status` 는 이 파일을 **못 본다** (git 은 심링크를 따라가지 않음)
 3. 메인의 `git status` 에는 untracked 로 뜬다 — 엉뚱한 브랜치로 새어나간다
 
-반면 `Assets/Scripts/_UI/Game2048/` 같은 기능 폴더는 심링크가 아닌 **실제 폴더**라, 새 파일이 그 워크트리의 브랜치에 정상적으로 올라간다.
+반면 `Assets/Scripts/_UI/MyGame/` 같은 기능 폴더는 심링크가 아닌 **실제 폴더**라, 새 파일이 그 워크트리의 브랜치에 정상적으로 올라간다.
 
 ## 3. "추가" 는 병렬 안전, "수정" 은 직렬화
 
@@ -34,7 +34,7 @@
 
 | 시나리오 | 안전성 | 해결법 |
 |---|---|---|
-| agent-0: `_UI/Game2048/Celebration/*.cs` 신규 / agent-1: `_UI/Game2048/PauseMenu/*.cs` 신규 | 안전 | 그대로 진행 |
+| agent-0: `_UI/MyGame/Celebration/*.cs` 신규 / agent-1: `_UI/MyGame/PauseMenu/*.cs` 신규 | 안전 | 그대로 진행 |
 | agent-0·agent-1 둘 다 `Board.cs` 수정 | 위험 | 한 쪽만 수정하고 먼저 머지, 다른 쪽은 rebase 후 수정 |
 | agent-0 이 공유 `Assets/Prefabs/` 에 새 프리팹 추가 | **금지** (§2) | 기능 폴더로 옮긴다 |
 

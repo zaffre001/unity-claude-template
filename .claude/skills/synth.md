@@ -90,7 +90,7 @@ python3 scripts/chiptune-synth/synth.py bass --sequence "C2 C2 G1 C2" --tempo 12
 - **메인 워크트리에서 작업 중이면**: `Assets/Audio/` 에 직접 저장해도 된다.
 - **워크트리 (`agent-0`, `agent-1` 등)에서 작업 중이면**: `Assets/Audio/` 는 심링크라 거기에 쓴 파일은 **워크트리 git 이 안 본다** (메인으로 새어나감). 기능 폴더에 같이 둔다:
   - ✅ `Assets/Scripts/_UI/Menu/SE/blip.wav`
-  - ✅ `Assets/Scripts/_Core/Game2048/Audio/move.wav`
+  - ✅ `Assets/Scripts/_Core/MyGame/Audio/move.wav`
   - ❌ `Assets/Audio/blip.wav` (워크트리에서 금지)
 
 판별:

@@ -83,7 +83,7 @@ ls *.sln 2>/dev/null || echo "MISSING:sln"
 재시작 후 첫 작업에서:
 ```
 LSP.documentSymbol
-  filePath=Assets/Scripts/_UI/Game2048/Game2048Bootstrap.cs
+  filePath=Assets/Scripts/_Core/Any.cs   # 프로젝트 안의 아무 .cs 파일
   line=1  character=1
 ```
 - 심볼 목록 반환 → ✅ 세팅 성공
