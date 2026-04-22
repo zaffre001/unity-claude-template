@@ -125,6 +125,7 @@ namespace Project.Editor.ClaudeBridge.Ops
                 ?? throw new Exception($"TextureImporter not found at {a.pngPath}");
 
             importer.textureType        = TextureImporterType.Sprite;
+            importer.spriteImportMode   = SpriteImportMode.Single;
             importer.spritePixelsPerUnit = ppu;
             importer.filterMode         = ParseFilter(a.filterMode);
             importer.textureCompression = ParseCompression(a.compression);
