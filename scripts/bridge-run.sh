@@ -52,9 +52,12 @@ echo "Log           : $LOG_FILE"
 echo ""
 
 set +e
+# -nographics 빼는 이유: Sprite.ImportFromSvg 처럼 GL/RenderTexture 가 필요한 op 은
+# -nographics 에서 no-op 으로 무음 실패 (빈 PNG 생성). macOS/Windows 에서는
+# -batchmode 만으로도 숨겨진 Metal/D3D 컨텍스트가 떠서 완전 비대화형 유지.
+# 순수 Linux CI 에서 돌릴 거면 Xvfb 나 SVG 아닌 op 만 쓰도록 가드 필요.
 "$UNITY_BIN" \
     -batchmode \
-    -nographics \
     -quit \
     -projectPath "$(pwd)" \
     -executeMethod Project.Editor.ClaudeBridge.ClaudeBridgeBatch.Run \

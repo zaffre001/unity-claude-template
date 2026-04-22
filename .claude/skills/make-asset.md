@@ -1,6 +1,6 @@
 ---
 name: make-asset
-description: Unity 어셋(UGUI 프리팹 / 파티클 / 프리미티브 placeholder 모델 / SVG 생성·래스터화한 아이콘 스프라이트)을 Claude Bridge 기반으로 제작. 사용자 요구가 모호하면 샘플 이미지·링크를 요구하고, 어떤 종류(UI/파티클/아이콘/모델)를 만들지 선택지로 제시. 에이전트가 게임 프로토타이핑 중 자산이 부족할 때 자동으로 호출해도 되는 스킬.
+description: Unity 어셋(UGUI 프리팹 / 파티클 / 프리미티브 placeholder 모델 / SVG 작성 → Unity Vector Graphics 로 렌더·임포트한 아이콘 스프라이트)을 Claude Bridge 기반으로 제작. 외부 래스터라이저(ImageMagick/rsvg) 불필요. 사용자 요구가 모호하면 샘플 이미지·링크를 요구하고, 어떤 종류(UI/파티클/아이콘/모델)를 만들지 선택지로 제시. 에이전트가 게임 프로토타이핑 중 자산이 부족할 때 자동으로 호출해도 되는 스킬.
 ---
 
 # Skill: /make-asset
@@ -153,14 +153,15 @@ unity_call("Reflection.Invoke", {
 
 #### 4-4-A. Claude가 SVG로 직접 그리는 경로 (심볼·도형류)
 
-**전체 흐름**: SVG 작성 → PNG 래스터화 → `Assets/Art/Icons/` 로 이동 → `Asset.Refresh` → TextureImporter를 Sprite로 구성.
+**전체 흐름**: SVG 작성 → `Sprite.ImportFromSvg` op 한 번 → 끝.
 
-**Step 1. SVG 작성.** 파일은 `Assets/Art/Icons/<name>.svg` 에 원본 보존 (재래스터화·편집용).
+Unity Vector Graphics 패키지(`com.unity.vectorgraphics`)가 SVG 파싱·테셀레이션·Texture2D 렌더를 전담하고, ClaudeBridge 가 PNG 인코딩·저장·Sprite 임포트까지 한 op 안에서 처리한다. **ImageMagick / rsvg-convert / qlmanage 같은 외부 바이너리 불필요.**
+
+**Step 1. SVG 작성.** 인라인 문자열로 op 인자에 바로 넣거나, `Assets/Art/Icons/<name>.svg` 에 Write 툴로 먼저 저장한 뒤 경로만 넘긴다.
 
 예시 — 하트 아이콘 (카드 슈트):
 
 ```xml
-<!-- Assets/Art/Icons/heart.svg -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
   <path d="M50 85 C 20 65, 10 35, 30 20 C 40 12, 50 20, 50 30 C 50 20, 60 12, 70 20 C 90 35, 80 65, 50 85 Z"
         fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
@@ -177,38 +178,54 @@ unity_call("Reflection.Invoke", {
 
 `viewBox`는 항상 `0 0 100 100` 정방형으로 통일. 그 안에서 좌표 사용하면 PNG 크기 바꿔도 동일 형태.
 
-**Step 2. PNG 래스터화.** 도구 우선순위 (Bash로 확인 후 사용):
-
-```bash
-# 1) rsvg-convert (권장, brew install librsvg 필요) — SVG 스펙 정확
-rsvg-convert -w 256 -h 256 heart.svg -o heart.png
-
-# 2) ImageMagick (기본 설치 가능성 높음) — 내부 SVG 렌더러, 간단한 도형엔 충분
-magick -background none -density 400 heart.svg -resize 256x256 heart.png
-
-# 3) macOS QuickLook (폴백) — rsvg/magick 둘 다 없을 때만
-qlmanage -t -s 256 -o . heart.svg && mv heart.svg.png heart.png
-```
-
-ImageMagick의 SVG 내부 렌더러는 `stroke-linecap`, gradient 일부를 제대로 안 그릴 수 있음. 결과 확인 후 틀어지면 `brew install librsvg`로 rsvg-convert 설치 권유.
-
-**Step 3. Unity 임포트 + Sprite 설정.** PNG를 `Assets/Art/Icons/`로 이동한 뒤 ClaudeBridge로:
+**Step 2. 임포트 (한 방).**
 
 ```python
+svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" ...>...</svg>"""
+
+unity_call("Sprite.ImportFromSvg", {
+    "svgText":       svg,
+    "pngPath":       "Assets/Art/Icons/heart.png",
+    "width":         256,
+    "height":        256,
+    "pixelsPerUnit": 100,
+    "filterMode":    "Bilinear",   # "Point" = 도트풍
+    "compression":   "None",
+    "antiAliasing":  4,            # MSAA 샘플 (1/2/4/8), 기본 4
+    "saveSvgSource": True,         # heart.svg 도 같이 저장해서 나중에 재편집 가능
+})
+```
+
+한 호출 안에서:
+1. Unity Vector Graphics 가 SVG 파싱 → 테셀레이션 → MSAA 4x로 Texture2D 렌더
+2. `Texture2D.EncodeToPNG()` → `File.WriteAllBytes(pngPath, bytes)`
+3. `AssetDatabase.ImportAsset` + `TextureImporter` (Sprite 타입, PPU, FilterMode, Compression, `alphaIsTransparency=true`, mipmaps off) 적용
+
+`svgText` 대신 이미 디스크에 있는 .svg 를 쓰고 싶으면 `svgPath: "Assets/Art/Icons/heart.svg"` 로 넘긴다. `svgText` 가 있으면 그쪽이 우선.
+
+**한계.** Unity Vector Graphics 는 대부분의 SVG 스펙을 지원하지만:
+- `filter`, `mask`, 복잡한 CSS 스타일, 외부 이미지 참조(`<image href>`) 등은 제한적
+- 결과가 어긋나면 SVG 를 단순화 (path/polygon/rect/circle + 단색 fill/stroke 중심)
+
+#### 4-4-B. 사용자 제공 이미지 임포트 (사진·일러스트)
+
+```python
+# 사용자가 이미지 파일을 Assets/Art/ 아래 드롭하거나 URL 제공.
+# URL이면 curl로 받아서 해당 경로로 이동.
+# curl -L -o Assets/Art/Icons/player-portrait.png "https://..."
+
 unity_call("Asset.Refresh", {})
 
-# TextureImporter 얻기 (리플렉션 — AssetImporter.GetAtPath는 static)
+# TextureImporter 설정은 현재 Reflection.Invoke 경유 (사진·일러스트는 SVG 스킵)
+# 필요해지면 Sprite.ImportTexture(path, ppu, filterMode, compression) 전용 op 추가 고려.
 r = unity_call("Reflection.Invoke", {
     "typeName": "UnityEditor.AssetImporter",
     "methodName": "GetAtPath",
     "argTypes": ["System.String"],
-    "argsJson": ["\"Assets/Art/Icons/heart.png\""]
+    "argsJson": ["\"Assets/Art/Icons/player-portrait.png\""]
 })
-# r.returnJson 의 instanceId 를 뽑아서 target으로 재사용
-
 importer_id = json.loads(r["returnJson"])["instanceId"]
 
-# textureType = Sprite (TextureImporterType.Sprite = 8)
 unity_call("Reflection.Invoke", {
     "typeName": "UnityEditor.TextureImporter",
     "methodName": "set_textureType",
@@ -216,11 +233,6 @@ unity_call("Reflection.Invoke", {
     "argTypes": ["UnityEditor.TextureImporterType"],
     "argsJson": ["\"Sprite\""]
 })
-
-# spritePixelsPerUnit, filterMode, textureCompression 등 추가 세팅
-# ... (Component.SetField 대신 Reflection.Invoke로 property setter 호출)
-
-# 변경 반영
 unity_call("Reflection.Invoke", {
     "typeName": "UnityEditor.AssetImporter",
     "methodName": "SaveAndReimport",
@@ -228,18 +240,6 @@ unity_call("Reflection.Invoke", {
     "argTypes": [],
     "argsJson": []
 })
-```
-
-> **향후 개선**: 임포터 설정이 3~5번 반복 호출되므로 `Asset.ImportAsSprite(path, ppu, filterMode, compression)` 같은 전용 op을 ClaudeBridge에 추가하면 한 줄로 끝남.
-
-#### 4-4-B. 사용자 제공 이미지 임포트 (사진·일러스트)
-
-```
-# 사용자가 이미지 파일을 Assets/Art/ 아래 드롭하거나 URL 제공.
-# URL이면 curl로 받아서 해당 경로로 이동.
-curl -L -o Assets/Art/Icons/player-portrait.png "https://..."
-
-# 이후는 4-4-A의 Step 3과 동일 (Asset.Refresh + TextureImporter 구성)
 ```
 
 ---

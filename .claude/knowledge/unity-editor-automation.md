@@ -41,25 +41,24 @@ Claude Desktop 채팅
 
 ## SVG 아이콘 파이프라인 (Claude가 직접 그리는 경로)
 
-Claude는 **단순 도형 SVG를 직접 작성**해서 Unity Sprite로 임포트할 수 있다. 이미지 생성 모델은 필요 없다.
+Claude는 **단순 도형 SVG를 직접 작성**해서 Unity Sprite로 임포트할 수 있다. 이미지 생성 모델·외부 래스터라이저 모두 필요 없다.
 
 ```
-1) Assets/Art/Icons/<name>.svg  ← Claude가 텍스트로 작성 (원본 보존)
-2) magick / rsvg-convert 로 PNG 래스터화 (기본 256×256)
-3) Asset.Refresh + Reflection.Invoke 로 TextureImporter 설정 (textureType=Sprite)
+1) SVG 작성 (인라인 문자열 또는 Assets/Art/Icons/<name>.svg)
+2) unity_call("Sprite.ImportFromSvg", { svgText|svgPath, pngPath, width, height, ppu, ... })
+      └─ Unity Vector Graphics (com.unity.vectorgraphics) 가 파싱·테셀레이트·렌더
+      └─ Texture2D.EncodeToPNG → 디스크 저장
+      └─ AssetDatabase.ImportAsset + TextureImporter(textureType=Sprite) 까지 한 op
 ```
 
 자주 쓰는 viewBox="0 0 100 100" SVG 패턴:
 - 원형 배지 / 둥근 사각형 / 별 / 체크 / X / 화살표 / 다이아·하트·스페이드·클로버 / 기어 / 방패 / 말풍선
 
-상세 예시와 래스터화 커맨드는 [`../skills/make-asset.md`](../skills/make-asset.md) §4-4-A.
+상세 예시와 op 호출 인자는 [`../skills/make-asset.md`](../skills/make-asset.md) §4-4-A.
 
-**래스터화 도구 우선순위**:
-1. `rsvg-convert` (brew install librsvg) — SVG 스펙 정확
-2. `magick` (ImageMagick) — 기본 설치 가능성 높음, 간단한 도형엔 충분
-3. `qlmanage` (macOS QuickLook) — 폴백
+**외부 바이너리 제거됨**: 과거에는 `rsvg-convert` / `magick` / `qlmanage` 로 PNG 래스터화했지만 이제 Unity 내장 렌더링(`VectorUtils.RenderSpriteToTexture2D` + MSAA 4x)으로 대체. 개발자 머신에 추가 설치 불필요, `com.unity.vectorgraphics` 패키지만 있으면 OK (manifest.json 기본 포함).
 
-ImageMagick이 `stroke-linecap` 일부 속성을 제대로 안 그릴 수 있으므로 결과 확인 후 어긋나면 `brew install librsvg` 권유.
+**한계**: Unity Vector Graphics 는 `filter`, `mask`, 외부 이미지 참조(`<image href>`) 등 일부 스펙 제한적. 결과가 어긋나면 SVG 를 path/polygon/rect/circle + 단색 fill/stroke 로 단순화한다.
 
 ## 자주 쓰는 op 조합
 
