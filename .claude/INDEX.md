@@ -27,6 +27,11 @@ Unity 모바일 성능 최적화 (2021 LTS 기준).
 - **keywords:** profiling, GC, GC.Collect, draw call, batching, dynamic batching, SRP batcher, texture, compression, ASTC, PVRTC, ETC, mesh, UGUI, canvas, GraphicRaycaster, raycast target, layout group, physics, FixedUpdate, collider, rigidbody, shader, lighting, lightmap, light probe, LOD, occlusion culling, audio, animation, animator, humanoid rig, coroutine, WaitForSeconds, frame budget, fps, targetFrameRate, vsync, object pool, ScriptableObject, Addressables, overdraw, post-processing
 - **when to read:** 성능·메모리·프레임 이슈, 렌더·물리·UI·오디오·애니메이션 튜닝, 빌드/임포트 설정
 
+### [knowledge/unity-scripting-gotchas.md](knowledge/unity-scripting-gotchas.md)
+모델이 자주 틀리는 Unity 스크립팅 함정 3선: 직렬화 (depth=7·null 부활·인라인 복제·SerializeReference·ISerializationCallbackReceiver), 코루틴 중단 조건 (enabled=false 안 멈춤·WaitForSecondsRealtime), IL2CPP Managed Code Stripping (link.xml·[Preserve]).
+- **keywords:** serialization depth, serialization null, ISerializationCallbackReceiver, SerializeReference, Dictionary serialize, inline serialization, coroutine stop, enabled false coroutine, WaitForSecondsRealtime, timeScale pause, IL2CPP, Managed Code Stripping, link.xml, Preserve, MissingMethodException, JsonUtility strip, Activator.CreateInstance, MakeGenericMethod, Reflection.Emit
+- **when to read:** `[Serializable]` 필드·ScriptableObject·MonoBehaviour 직렬화 필드 설계, 코루틴으로 타이머/일시정지 구현, iOS·콘솔·WebGL 빌드 실패 (MissingMethod/TypeLoad), 리플렉션·JsonUtility 쓰는 코드 빌드 대비
+
 ### [knowledge/csharp-dotnet.md](knowledge/csharp-dotnet.md)
 C#/.NET 언어 핵심.
 - **keywords:** value type, reference type, struct, class, stack, heap, boxing, unboxing, string, StringBuilder, event, delegate, subscribe, unsubscribe, generic, constraint, Nullable, nullable, null coalescing, equality, Equals, GetHashCode, virtual, override, sealed, async, await, CancellationToken, UniTask, property, field, exception, LINQ, IEnumerable, foreach, interface, List<T>, Dictionary, HashSet, Queue, Stack, ArrayList, Hashtable
