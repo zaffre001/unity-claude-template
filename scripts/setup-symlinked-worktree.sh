@@ -60,6 +60,9 @@ LIBRARY_DST="$WORKTREE/Library"
 if [ -d "$LIBRARY_SRC" ]; then
   mkdir -p "$LIBRARY_DST"
 
+  # 워크트리별로 '복사'해야 하는 Library 하위 항목들.
+  # 심링크로 공유하면 병렬 Unity 에디터들이 같은 파일을 동시에 쓰면서
+  # 어셈블리 혼선·ArtifactDB 충돌이 생긴다.
   LOCK_FILES=(
     "ArtifactDB"
     "SourceAssetDB"
@@ -67,6 +70,8 @@ if [ -d "$LIBRARY_SRC" ]; then
     "ArtifactDB-lock"
     "SourceAssetDB-lock"
     "BuildPlayer.prefs"
+    "ScriptAssemblies"    # 컴파일된 .dll — 병렬 컴파일 레이스 방지
+    "Bee"                 # Unity 빌드 시스템 작업 디렉터리 (Csc 중간 산출물 포함)
   )
 
   for item in "$LIBRARY_SRC"/*; do

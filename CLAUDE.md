@@ -116,7 +116,23 @@ public class GameManager : MonoBehaviour
 - 브레이크포인트에서 멈춘 후 반드시 `continue`를 호출해야 에디터가 재개된다.
 - 디버깅 완료 후 Code Optimization을 Release로 되돌린다.
 
-## 8. 지식 계층 & 인덱스
+## 8. 에디터 실행 검증
+
+에이전트가 Unity 쪽 검증이 필요할 때 **항상** 아래 순서를 따른다.
+
+- **1순위: ClaudeBridge 헤드리스** — `./scripts/bridge-run.sh` 로 `-batchmode` 컴파일·커맨드 실행. 컴파일 에러·어셈블리 재빌드·op 실행까지 GUI 없이 완결된다.
+- **2순위: `/run editor`** — GUI 상호작용이 꼭 필요할 때만. 아래 3단계 폴링을 반드시 지킨다 (사용자를 필요 이상으로 기다리게 하지 않기 위함).
+  1. **프로세스 up** — `./scripts/wait-editor.sh [timeout=30] [interval=1]`. 1초 간격 폴링, 뜨는 즉시 exit 0. 인라인 `for`/`pgrep` 루프 금지.
+  2. **브릿지 ready** — `mcp__claude-bridge__unity_call` 을 재시도 (`timeout_sec=60` 정도). 에디터가 프로젝트 로드·컴파일 끝내야 응답한다. 첫 호출은 TimeoutError 날 수 있으니 재호출로 폴링.
+  3. **Play 모드 진입은 비동기** — `EnterPlaymode` 는 void 즉시 반환이지만 실제 진입까지 **10초 이상** 걸릴 수 있다. 짧은 `sleep` 로 가정하지 말고, `get_isPlaying` 을 1~2초 간격으로 폴링해 `True` 가 될 때까지 기다린다 (상한 20초).
+- **금지: 컴퓨터 유즈 (`mcp__computer-use__*`)** — 화면 좌표 기반 마우스/키보드 자동화는 이 프로젝트에서 쓰지 않는다. 라운드트립이 많고 느리며, Bridge op 로 표현 가능한 작업이 대부분이다. 에디터 GUI 조작이 정말 필요하면 사용자에게 넘긴다.
+
+새로운 검증 시나리오가 Bridge op 로 표현되지 않는다면, 컴퓨터 유즈로 우회하는 대신 **op 추가**를 먼저 고려한다 (`.claude/knowledge/unity-editor-automation.md` 참고).
+
+### 셸 주의
+- 이 레포의 Bash 툴은 macOS zsh에서 실행된다. zsh는 `$status` 같은 built-in을 **read-only**로 예약한다. 인라인 폴링 루프를 쓸 이유가 있으면 변수명에 `status`·`prompt`·`path`·`argv`·`options` 를 쓰지 말고 `UNITY_PID`·`ELAPSED` 처럼 충돌 없는 것으로 쓴다. 가능하면 `wait-editor.sh` 같은 기성 스크립트로 대체.
+
+## 9. 지식 계층 & 인덱스
 
 에이전트는 `/task-start`에서 [`.claude/INDEX.md`](.claude/INDEX.md)를 먼저 읽고, 작업 주제에 매칭되는 파일만 선별 로드한다. 이래서 토큰과 시간을 아낀다.
 
