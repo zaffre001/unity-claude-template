@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv --version)",
+      "Bash(uv --version:*)",
+      "Bash(which uv)",
+      "Bash(python3 --version)",
+      "Bash(python --version)",
+      "Bash(uv run --directory scripts/claude-bridge-mcp claude-bridge-mcp:*)",
+      "Bash(uname -a)",
+      "Bash(uname -s)",
+      "Bash(cat ProjectSettings/ProjectVersion.txt)",
+      "Bash(ls -la .mcp.json)",
+      "Bash(./scripts/run-editor.sh)",
+      "Bash(./scripts/run-editor.sh:*)",
+      "Bash(./scripts/bridge-run.sh)",
+      "Bash(./scripts/bridge-run.sh:*)",
+      "Bash(./scripts/wait-editor.sh)",
+      "Bash(./scripts/wait-editor.sh:*)",
+      "mcp__claude-bridge__unity_bridge_status",
+      "mcp__claude-bridge__unity_call",
+      "mcp__claude-bridge__unity_batch_flush"
+    ]
+  }
+}

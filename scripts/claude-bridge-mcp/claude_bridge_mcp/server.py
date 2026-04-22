@@ -5,7 +5,7 @@ ClaudeBridge MCP Server
 
 ClaudeBridge의 파일 기반 IPC를 MCP 툴 몇 개로 감싸는 얇은 서버.
 
-Claude Desktop에 등록하면 Claude가 파일 read/write 루프 없이
+Claude Code / Claude Desktop에 등록하면 파일 read/write 루프 없이
 `unity_call(op, args)` 한 번으로 Unity Editor 조작을 끝낸다.
 
 툴:
@@ -13,35 +13,22 @@ Claude Desktop에 등록하면 Claude가 파일 read/write 루프 없이
     unity_batch_flush()        — inbox에 쌓인 커맨드를 headless Unity로 일괄 실행
     unity_bridge_status()      — 현재 상태 스냅샷
 
-왜 얇게 만드나:
-    ClaudeBridge 본체(Unity C#)가 유일한 실행 주체여야 한다.
-    Python은 파일 쓰기/읽기·타임아웃·배치 트리거만 담당.
-    op 추가는 C# 쪽에만 하면 되고 이 서버는 그대로 통과시킨다.
+실행 (권장 — 프로젝트 로컬 `uv run`, 맥/윈도우/리눅스 동일):
+    # 프로젝트 루트의 `.mcp.json` 이 아래를 자동으로 부른다:
+    uv run --directory scripts/claude-bridge-mcp claude-bridge-mcp
 
-설치 (pipx 권장):
+    `uv` 가 없다면:
+        macOS/Linux:  curl -LsSf https://astral.sh/uv/install.sh | sh
+        Windows:      powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+레거시 실행 (pipx, Claude Desktop 전용):
     pipx install /absolute/path/to/unity-claude-template/scripts/claude-bridge-mcp
 
-    → `claude-bridge-mcp` 커맨드가 PATH에 생성된다.
-
-Claude Desktop 등록 (claude_desktop_config.json):
-    {
-      "mcpServers": {
-        "claude-bridge": {
-          "command": "claude-bridge-mcp",
-          "env": {
-            "CLAUDE_BRIDGE_PROJECT": "/absolute/path/to/your/unity/project"
-          }
-        }
-      }
-    }
-
-    pipx는 패키지를 격리된 venv에 깔기 때문에 server.py의 __file__ 로 프로젝트 루트를
-    추론할 수 없다. CLAUDE_BRIDGE_PROJECT env var가 필요하다.
-
-개발 모드 (설치 없이 직접 실행):
-    cd scripts/claude-bridge-mcp
-    python -m claude_bridge_mcp.server
-    → 이 경우엔 __file__ 위치에서 루트를 자동 추론 시도.
+프로젝트 루트 해석 순서:
+    1) env var CLAUDE_BRIDGE_PROJECT      — 명시적 우선
+    2) __file__ 위치 추론                  — `uv run`·`python -m` 으로 실행 시
+    3) os.getcwd() 추론                    — Claude Code 는 `.mcp.json` 디렉터리를
+                                             서버의 CWD 로 launch 하므로 맞을 때가 많다
 """
 from __future__ import annotations
 
@@ -59,18 +46,22 @@ try:
 except ImportError:
     sys.stderr.write(
         "ERROR: `mcp` 패키지를 찾을 수 없습니다.\n"
-        "이 서버는 pipx 로 설치해야 합니다:\n"
+        "권장 실행 (프로젝트 로컬 uv):\n"
+        "  uv run --directory scripts/claude-bridge-mcp claude-bridge-mcp\n"
+        "또는 pipx:\n"
         "  pipx install /path/to/unity-claude-template/scripts/claude-bridge-mcp\n"
-        "Claude Desktop 설정에서는 command를 `claude-bridge-mcp`로 지정하세요.\n"
     )
     sys.exit(1)
 
 
+IS_WINDOWS = sys.platform == "win32"
+
+
 # ── 프로젝트 루트 결정 ──────────────────────────────────────────────────
 # 우선순위:
-#   1) env var CLAUDE_BRIDGE_PROJECT — pipx 설치 시 반드시 이걸 쓴다
-#   2) __file__ 위치에서 자동 추론 — `python -m claude_bridge_mcp.server`로 직접 돌릴 때만 작동
-#      (pipx는 ~/.local/pipx/venvs/... 아래에 설치하므로 자동 추론 불가)
+#   1) env var CLAUDE_BRIDGE_PROJECT — pipx·명시적 지정 시
+#   2) __file__ 위치에서 자동 추론 — `uv run`·`python -m` 실행 시
+#   3) os.getcwd() — Claude Code `.mcp.json` 은 CWD 를 프로젝트 루트로 launch
 def _resolve_project_root() -> Path:
     env = os.environ.get("CLAUDE_BRIDGE_PROJECT")
     if env:
@@ -78,19 +69,27 @@ def _resolve_project_root() -> Path:
         if not (p / "ProjectSettings" / "ProjectVersion.txt").exists():
             sys.stderr.write(
                 f"WARNING: CLAUDE_BRIDGE_PROJECT={p} but no ProjectSettings/ProjectVersion.txt found.\n"
-                "Check the path in claude_desktop_config.json.\n"
+                "Check the path in your MCP config.\n"
             )
         return p
 
     # scripts/claude-bridge-mcp/claude_bridge_mcp/server.py → parents[3]이 프로젝트 루트
-    candidate = Path(__file__).resolve().parents[3]
-    if (candidate / "ProjectSettings" / "ProjectVersion.txt").exists():
-        return candidate
+    try:
+        candidate = Path(__file__).resolve().parents[3]
+        if (candidate / "ProjectSettings" / "ProjectVersion.txt").exists():
+            return candidate
+    except (IndexError, OSError):
+        pass
+
+    # CWD 폴백 — Claude Code 가 `.mcp.json` 디렉터리를 CWD 로 서버를 실행할 때 유효
+    cwd = Path.cwd().resolve()
+    if (cwd / "ProjectSettings" / "ProjectVersion.txt").exists():
+        return cwd
 
     sys.stderr.write(
         "ERROR: Could not locate Unity project root.\n"
-        "Set CLAUDE_BRIDGE_PROJECT in claude_desktop_config.json:\n"
-        '  "env": {"CLAUDE_BRIDGE_PROJECT": "/absolute/path/to/your/unity/project"}\n'
+        "Tried: CLAUDE_BRIDGE_PROJECT env var, __file__ traversal, CWD.\n"
+        "Set CLAUDE_BRIDGE_PROJECT in your MCP config, or run from the project root.\n"
     )
     sys.exit(1)
 
@@ -99,7 +98,67 @@ PROJECT_ROOT = _resolve_project_root()
 
 INBOX = PROJECT_ROOT / ".claude-bridge" / "inbox"
 OUTBOX = PROJECT_ROOT / ".claude-bridge" / "outbox"
-BRIDGE_RUN = PROJECT_ROOT / "scripts" / "bridge-run.sh"
+LOGS = PROJECT_ROOT / ".claude-bridge" / "logs"
+PROJECT_VERSION_FILE = PROJECT_ROOT / "ProjectSettings" / "ProjectVersion.txt"
+
+
+def _read_unity_version() -> str:
+    for line in PROJECT_VERSION_FILE.read_text(encoding="utf-8").splitlines():
+        if line.startswith("m_EditorVersion:"):
+            return line.split(":", 1)[1].strip()
+    raise RuntimeError(f"m_EditorVersion not found in {PROJECT_VERSION_FILE}")
+
+
+def _unity_editor_paths(version: str) -> list[Path]:
+    """OS 별 Unity Editor 바이너리 후보 경로. 첫 번째 존재하는 것 사용."""
+    home = Path.home()
+    if sys.platform == "darwin":
+        return [Path(f"/Applications/Unity/Hub/Editor/{version}/Unity.app/Contents/MacOS/Unity")]
+    if sys.platform == "win32":
+        program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files"))
+        return [
+            program_files / "Unity" / "Hub" / "Editor" / version / "Editor" / "Unity.exe",
+            home / "Unity" / "Hub" / "Editor" / version / "Editor" / "Unity.exe",
+        ]
+    # Linux
+    return [
+        home / "Unity" / "Hub" / "Editor" / version / "Editor" / "Unity",
+        Path(f"/opt/Unity/Hub/Editor/{version}/Editor/Unity"),
+    ]
+
+
+def _find_unity_editor() -> Path:
+    version = _read_unity_version()
+    for candidate in _unity_editor_paths(version):
+        if candidate.exists():
+            return candidate
+    tried = "\n  ".join(str(p) for p in _unity_editor_paths(version))
+    raise FileNotFoundError(
+        f"Unity Editor {version} not found. Tried:\n  {tried}\n"
+        f"Install Unity {version} via Unity Hub and retry."
+    )
+
+
+def _detect_unity_process() -> bool | None:
+    """Editor 프로세스가 떠 있는지 간단 체크. 실패 시 None."""
+    try:
+        if sys.platform == "win32":
+            proc = subprocess.run(
+                ["tasklist", "/FI", "IMAGENAME eq Unity.exe", "/NH"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+            return "Unity.exe" in proc.stdout
+        pattern = "Unity.app/Contents/MacOS/Unity" if sys.platform == "darwin" else "Unity/Hub/Editor"
+        rc = subprocess.run(
+            ["pgrep", "-f", pattern],
+            capture_output=True,
+            timeout=3,
+        ).returncode
+        return rc == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return None
 
 # Unity Editor가 커맨드 하나를 집어 실행하기까지 기다릴 최대 시간.
 # GUI 모드 폴링이 200ms이므로 10초면 네트워크·컴파일 기다림까지 충분.
@@ -242,8 +301,8 @@ def unity_batch_flush(timeout_sec: float = 300.0) -> dict[str, Any]:
     `.claude-bridge/inbox/*.json` 에 쌓인 커맨드를 headless Unity로 일괄 실행합니다.
 
     사용자가 Unity Editor를 열어두지 않은 경우에 쓰세요.
-    내부적으로 scripts/bridge-run.sh를 호출하여 Unity를 -batchmode로 띄우고,
-    inbox 전체를 처리한 뒤 종료합니다.
+    Python 에서 Unity 를 직접 -batchmode 로 띄우고 (맥/윈도우/리눅스 자동 감지),
+    inbox 전체를 처리한 뒤 종료합니다. 쉘(bash) 의존성 없음.
 
     Parameters
     ----------
@@ -265,29 +324,39 @@ def unity_batch_flush(timeout_sec: float = 300.0) -> dict[str, Any]:
     Editor가 같은 프로젝트로 이미 떠 있으면 락 충돌로 실패합니다.
     그 경우 Editor를 닫거나 unity_call을 GUI 모드로 직접 쓰세요.
     """
-    if not BRIDGE_RUN.exists():
-        raise FileNotFoundError(f"bridge-run.sh not found: {BRIDGE_RUN}")
-
     _ensure_folders()
+    LOGS.mkdir(parents=True, exist_ok=True)
+
+    unity_bin = _find_unity_editor()
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    log_file = LOGS / f"bridge-{timestamp}.log"
+
+    # -nographics 빼는 이유: Sprite.ImportFromSvg 처럼 GL/RenderTexture 가 필요한 op 은
+    # -nographics 에서 no-op 으로 무음 실패 (빈 PNG 생성). macOS/Windows 에서는
+    # -batchmode 만으로도 숨겨진 Metal/D3D 컨텍스트가 떠서 완전 비대화형 유지.
+    cmd = [
+        str(unity_bin),
+        "-batchmode",
+        "-quit",
+        "-projectPath", str(PROJECT_ROOT),
+        "-executeMethod", "Project.Editor.ClaudeBridge.ClaudeBridgeBatch.Run",
+        "-logFile", str(log_file),
+    ]
 
     proc = subprocess.run(
-        ["/bin/bash", str(BRIDGE_RUN)],
+        cmd,
         cwd=str(PROJECT_ROOT),
         capture_output=True,
         text=True,
         timeout=timeout_sec,
     )
 
-    # 로그 최근 파일 tail
-    log_dir = PROJECT_ROOT / ".claude-bridge" / "logs"
     log_tail = ""
-    if log_dir.exists():
-        logs = sorted(log_dir.glob("bridge-*.log"))
-        if logs:
-            try:
-                log_tail = "\n".join(logs[-1].read_text(encoding="utf-8").splitlines()[-20:])
-            except OSError:
-                pass
+    if log_file.exists():
+        try:
+            log_tail = "\n".join(log_file.read_text(encoding="utf-8").splitlines()[-20:])
+        except OSError:
+            pass
 
     return {
         "exit_code": proc.returncode,
@@ -295,6 +364,7 @@ def unity_batch_flush(timeout_sec: float = 300.0) -> dict[str, Any]:
         "remaining_inbox": len(list(INBOX.glob("*.json"))),
         "stdout_tail": "\n".join(proc.stdout.splitlines()[-10:]),
         "stderr_tail": "\n".join(proc.stderr.splitlines()[-10:]),
+        "log_file": str(log_file),
         "log_tail": log_tail,
     }
 
@@ -309,33 +379,38 @@ def unity_bridge_status() -> dict[str, Any]:
     dict
         {
           "project_root": str,
+          "platform": str,                 # darwin | win32 | linux
+          "unity_version": str | None,     # ProjectVersion.txt 파싱 값
+          "unity_editor_path": str | None, # OS 별 Unity Editor 탐지 (없으면 None — 설치 안 된 상태)
           "inbox_pending": int,
           "outbox_unread": int,
-          "editor_running": bool | None,   # pgrep 결과. macOS/Linux만 정확
+          "editor_running": bool | None,   # pgrep/tasklist 결과. 실패 시 None
         }
     """
     _ensure_folders()
-    editor_running: bool | None = None
+
+    # Unity Editor 설치 경로 확인 (자동 세팅 검증용)
+    unity_editor_path: str | None = None
+    unity_version: str | None = None
     try:
-        rc = subprocess.run(
-            ["pgrep", "-f", "Unity.app/Contents/MacOS/Unity"],
-            capture_output=True,
-            timeout=2,
-        ).returncode
-        editor_running = (rc == 0)
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+        unity_version = _read_unity_version()
+        unity_editor_path = str(_find_unity_editor())
+    except (FileNotFoundError, OSError, RuntimeError):
         pass
 
     return {
         "project_root": str(PROJECT_ROOT),
+        "platform": sys.platform,
+        "unity_version": unity_version,
+        "unity_editor_path": unity_editor_path,
         "inbox_pending": len(list(INBOX.glob("*.json"))),
         "outbox_unread": len(list(OUTBOX.glob("*.json"))),
-        "editor_running": editor_running,
+        "editor_running": _detect_unity_process(),
     }
 
 
 def main() -> None:
-    """pipx [project.scripts] 진입점. 쉘에서 `claude-bridge-mcp`로 호출되면 여기로 온다."""
+    """[project.scripts] 진입점. `uv run claude-bridge-mcp` 또는 pipx 설치 후 쉘에서 호출."""
     mcp.run()
 
 

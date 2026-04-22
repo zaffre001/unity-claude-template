@@ -13,8 +13,8 @@
 
 ## 이 문서가 여러분을 데려가는 길
 
-1. **준비물** (20분쯤) — 유니티·Claude Desktop·이 템플릿 내려받기
-2. **브릿지 설치** (5분쯤) — Claude 가 내 파일과 유니티에 손을 뻗을 수 있도록
+1. **준비물** (10분쯤) — 유니티·Claude Code·이 템플릿 내려받기
+2. **자동 세팅** (1분쯤) — `/setup` 한 줄로 브릿지·MCP 다 연결
 3. **연습판: 솔리테어 만들어 보기** — 도구들 감 잡기
 4. **정리하기** — 솔리테어 걷어 내고 템플릿을 다시 깨끗하게
 5. **여러분 게임으로 갈아타기** — 장르별 가이드 + 바로 쓸 수 있는 말투
@@ -28,87 +28,59 @@
 | 갖춰야 할 것 | 어디서 받나요 |
 |---|---|
 | Unity Hub + Unity 2022.3 LTS | [unity.com/download](https://unity.com/download) 에서 받아 설치 마법사대로 진행 |
-| Claude Desktop 앱 | [claude.ai/download](https://claude.ai/download) — 맥·윈도 모두 지원 |
-| 파이썬 3.10 이상 | 맥이라면 보통 이미 깔려 있어요. 터미널에 `python3 --version` 쳐서 확인해 주세요. 윈도는 [python.org](https://python.org) |
-| 이 템플릿 | 오른쪽 위 **Use this template** 로 내 계정에 복제하시거나, 초록색 **Code** 단추 → **Download ZIP** 으로 받아 압축 풀기 |
+| Claude Code 데스크탑 앱 | [claude.com/claude-code](https://www.anthropic.com/claude-code) — 맥·윈도우 모두 지원. 앱을 받아 설치 마법사대로 진행 |
+| 이 템플릿 | 오른쪽 위 **Use this template** 로 내 계정에 복제하거나, 초록색 **Code** 단추 → **Download ZIP** 으로 받아 압축 풀기 |
 
 압축은 `~/Documents/my-game` 처럼 알아보기 쉬운 자리에 풀어 주세요. **폴더 이름에 한글·띄어쓰기가 없는 편이** 유니티가 읽다가 삐끗하는 일을 줄여 줍니다.
 
+> **파이썬·pipx·Filesystem MCP 는 더 이상 필요 없습니다.** `/setup` 이 알아서 `uv` (파이썬 환경 매니저) 설치부터 브릿지 연결까지 챙겨 줘요. `uv` 가 없다면 `/setup` 이 OS 에 맞는 설치 명령 한 줄을 안내해 줍니다 (맥·리눅스·윈도우 모두 1줄씩).
+
 ---
 
-## 2. 브릿지 설치
+## 2. 자동 세팅 — `/setup` 한 줄
 
-Claude 가 여러분 컴퓨터에서 실제로 일을 하려면 작은 다리 두 개가 필요합니다.
+**1)** Claude Code 데스크탑 앱을 실행합니다.
 
-- **Filesystem MCP** — 파일을 열고 새로 쓰는 다리
-- **Claude Bridge MCP** — 유니티 에디터를 움직이는 다리 (이 템플릿에 담겨 있어요)
+**2)** 상단 **Code 탭** 으로 들어가 새 세션을 시작합니다. 프롬프트 영역 위의 **Project folder** 를 눌러 **여러분이 압축을 푼 템플릿 폴더** (예: `~/Documents/my-game`) 를 선택합니다. 폴더를 창에 **드래그 앤 드롭** 해도 됩니다.
 
-### 2-1. Filesystem 다리 놓기 (30초쯤)
+**3)** Claude Code 가 이 프로젝트의 `.mcp.json` 을 자동으로 읽어 브릿지 MCP 서버를 올립니다. 권한 승인 다이얼로그가 뜨면 **Approve** 를 눌러 주세요.
 
-**1)** Claude Desktop 을 켜고 **설정(Settings)** → 왼쪽 메뉴 **커넥터(Connectors)** → 오른쪽 위 **커넥터 둘러보기**
+**4)** 프롬프트 상자에 슬래시(`/`) 를 쳐서 커맨드 자동완성을 띄우거나, 그냥 이렇게 부탁하세요:
 
-![설정에서 커넥터 찾기](docs/images/01-connector-filesystem.png)
+> /setup 해 줘.
 
-**2)** 목록에서 **Filesystem** 을 고르고 **설치** 단추를 눌러 주세요.
+이 뒤부터는 Claude 가 **직접 Bash 로 실행**해서 알아서 끝냅니다 — 사용자가 터미널에 명령을 복사·붙여넣기 할 필요 없어요:
 
-![Filesystem 설치](docs/images/02-filesystem-install.png)
+- OS 를 감지하고 (`darwin` / `win32` / `linux`)
+- `uv --version` 으로 설치 여부 확인 (무해한 명령이라 권한 프롬프트 없음)
+- `uv` 가 없으면 Claude 가 **`curl ... | sh` (맥/리눅스) 또는 PowerShell 1줄 (윈도우) 을 직접 실행**. 네트워크 다운로드라 이때만 승인 다이얼로그 1회 — **Approve** 버튼만 눌러 주시면 됩니다
+- `.mcp.json` 이 프로젝트 루트에 있는지 확인 (템플릿엔 기본 포함)
+- `unity_bridge_status` 로 유니티 에디터 감지 여부와 프로젝트 경로가 잘 잡혔는지 확인
+- 빠진 것만 한 줄씩 정리해서 보고
 
-**3)** 토글이 **사용 중** 으로 켜지면 오른쪽 **구성** 단추 → 방금 압축 푼 템플릿 폴더 고르기.
+> **여러분이 직접 타이핑할 건 단 두 가지**: (a) `/setup`, (b) `uv` 가 안 깔려 있었다면 설치 승인 **Approve** 버튼. 그 외 모든 명령은 Claude 가 자기 Bash 툴로 돌립니다. 복잡한 설치 순서·환경 변수·경로 확인 같은 건 신경 쓰지 않아도 됩니다.
 
-![Filesystem 켜진 모습](docs/images/03-filesystem-active.png)
+**5)** 끝났으면 이런 보고가 나옵니다:
 
-### 2-2. Claude Bridge 다리 놓기 (2분쯤)
+```
+세팅 점검 결과
+  ✓ uv 설치 확인
+  ✓ .mcp.json 발견
+  ✓ Unity Editor 감지: /Applications/Unity/Hub/Editor/2022.3.45f1/...
+  ✓ Bridge MCP 응답: project_root = /Users/.../my-game
 
-**1)** 터미널을 열고 `pipx` 를 준비합니다 (이미 깔려 있으면 건너뛰세요):
-
-```bash
-brew install pipx
-pipx ensurepath
+다음 단계
+  · /run editor 로 Unity 띄우기
+  · §3 "솔리테어 연습" 로 넘어가기
 ```
 
-윈도라면 `python -m pip install --user pipx` → `python -m pipx ensurepath` 순서로.
+> **왜 이렇게 단순한가요?** Claude Code 데스크탑 앱은 프로젝트 루트의 `.mcp.json` 을 자동으로 읽어 MCP 서버를 올려 줍니다. 이 템플릿은 `uv run` 으로 브릿지를 돌리게 설정해 뒀어요. `uv` 는 맥·윈도우·리눅스 공통으로 돌아가고 가상환경까지 자기가 관리하므로, pipx·pip·PATH 세팅 같은 복잡한 사전 작업이 사라졌습니다.
 
-**2)** 이 템플릿 안에 담긴 브릿지 서버를 `pipx` 로 깝니다:
+**업데이트할 때:** `git pull` 한 번이면 끝. 브릿지 코드가 바뀌었어도 다음번 `uv run` 호출 때 자동으로 반영됩니다.
 
-```bash
-pipx install ~/Documents/my-game/scripts/claude-bridge-mcp
-```
-
-경로는 **다운로드 받은 이 깃 폴더를 풀어 놓은 자리**로 바꿔 주세요. 설치가 끝나면 `claude-bridge-mcp` 라는 커맨드가 새로 생깁니다. `which claude-bridge-mcp` 쳐서 경로가 나오면 성공이에요.
-
-> **왜 pipx 인가요?** 맥 홈브루 파이썬에선 그냥 `pip install mcp` 가 `externally-managed-environment` 오류로 막힙니다. pipx 는 서버를 자기만의 가상환경에 깔고 커맨드 이름만 밖으로 꺼내 줘서 이런 충돌이 없어요.
-
-**3)** Claude Desktop 설정 파일을 열어서 다리 정보를 적어 둡니다.
-
-- 맥: Finder 에서 `Cmd + Shift + G` 누르고 `~/Library/Application Support/Claude/` 붙여 넣기 → `claude_desktop_config.json` 을 텍스트 편집기로 열기
-- 윈도: `%APPDATA%\Claude\claude_desktop_config.json`
-
-**4)** `mcpServers` 안에 `claude-bridge` 항목을 덧붙여 주세요:
-
-```json
-{
-  "mcpServers": {
-    "claude-bridge": {
-      "command": "claude-bridge-mcp",
-      "env": {
-        "CLAUDE_BRIDGE_PROJECT": "/Users/여러분이름/Documents/my-game"
-      }
-    }
-  }
-}
-```
-
-`CLAUDE_BRIDGE_PROJECT` 에는 **다운로드 받은 이 깃 폴더를 풀어 놓은 자리** (유니티 프로젝트 루트, 즉 `ProjectSettings` 폴더가 있는 자리) 를 그대로 적어 주세요.
-
-**5)** Claude Desktop 을 완전히 끄고(맥이라면 `Cmd + Q`) 다시 열어 주세요.
-
-**6)** 새 대화창에서 살짝 점검해 봅니다:
-
-> `unity_bridge_status` 도구 한 번 불러서 지금 상태 좀 보여줘.
-
-답변에 `project_root` 가 여러분 템플릿 폴더로 잡혀 있으면 다리가 잘 놓인 거예요. `editor_running: false` 는 아직 유니티를 안 켰다는 뜻이니 신경 쓰지 않으셔도 됩니다.
-
-**업데이트할 때:** 템플릿을 `git pull` 로 당긴 뒤 `pipx install --force ~/Documents/my-game/scripts/claude-bridge-mcp` 한 번 더 돌려 주시면 끝입니다.
+> **Claude Code CLI 를 쓰신다면** 데스크탑 앱과 동일하게 `.mcp.json` 이 자동으로 잡힙니다 (`cd ~/Documents/my-game && claude`). 설정 파일(`.mcp.json`, `~/.claude.json`, `settings.json`, CLAUDE.md, skills) 은 앱과 CLI 가 모두 공유해요.
+>
+> **Claude Desktop (chat 앱) 은 별개** 입니다. `claude_desktop_config.json` 은 이 템플릿과 상관없는 파일이라, 거기에 브릿지를 등록하려면 이 README 가 아니라 `.claude/skills/setup.md` §5 "대체 경로" 의 pipx 지침을 따라 주세요 — 권장하지 않습니다.
 
 ---
 
@@ -116,7 +88,7 @@ pipx install ~/Documents/my-game/scripts/claude-bridge-mcp
 
 > 여기는 **도구들이 어떻게 엮여 돌아가는지 손에 익히는 연습 단계**입니다. 나중에 이 결과물을 정리하고 여러분 게임으로 넘어갈 거예요. 그러니 "솔리테어 만드는 법" 보다는 "Claude 한테 뭘 어떻게 시킬 수 있는지" 를 눈에 익혀 두신다는 느낌으로 봐 주세요.
 
-아래 글을 Claude 대화창에 그대로 붙여 넣어 주세요:
+아래 글을 Claude Code 프롬프트 상자에 그대로 붙여 넣어 주세요:
 
 > 나 유니티 처음 써봐. 이 폴더가 unity-claude-template 이야. 연습 삼아 클론다이크 솔리테어를 만들어 보자.
 >
@@ -228,6 +200,21 @@ Claude 에게는 이렇게 부탁해 보세요:
 ## 7. 쓸 수 있는 스킬들
 
 Claude 에게 `/스킬명`형식으로 시킬 수 있는 작업 묶음이에요. 여러분이 굳이 부르지 않아도 클로드가 알아서 쓸 수 있는 스킬은 **자동** 표시를 붙였습니다. 각 스킬이 해주는 일과 예시 프롬프트를 함께 적어 뒀어요.
+
+### `/setup` — 프로젝트 자동 세팅 (맨 처음 1회)
+
+이 템플릿을 처음 클론했을 때 한 번 돌리는 부트스트랩이에요. OS 감지 → `uv` 확인 → `.mcp.json` 확인 → Unity Editor 감지 → Bridge MCP 연결 테스트까지 **Claude 가 순서대로 점검하고 빠진 것만 고쳐** 줍니다. 맥·윈도우·리눅스 모두 지원.
+
+**할 수 있는 일**
+- `uv` 미설치 시 OS별 1줄 설치 명령 안내 (맥: curl, 윈도우: PowerShell)
+- `.mcp.json` 확인·복구 (템플릿 기본 포함)
+- `mcp__claude-bridge__unity_bridge_status` 로 프로젝트 경로·유니티 에디터 감지 확인
+- 완료 후 체크리스트 형태로 한 번에 보고 (✓ / ✗ 와 다음 단계)
+
+**예시 프롬프트**
+> /setup 해 줘.
+>
+> /setup — 다른 컴퓨터에서 처음 여는 거야. 세팅 처음부터 끝까지 봐 줘.
 
 ### `/task-start` — 작업 시작 채비 (자동)
 
@@ -456,8 +443,9 @@ claude   # 이 창은 _UI 담당
 ### 유니티 에디터 자동화 도구
 | 경로 | 하는 일 |
 |---|---|
+| [`.mcp.json`](.mcp.json) | 프로젝트 루트의 MCP 서버 등록 파일. Claude Code 가 자동으로 읽어 `uv run` 으로 브릿지를 올립니다 — 맥·윈도우·리눅스 공통 |
 | [`Assets/Editor/ClaudeBridge/`](Assets/Editor/ClaudeBridge/README.md) | 파일로 주고받는 다리 + 리플렉션으로 돌아가는 op 스물두 가지 (씬 / 게임오브젝트 / 컴포넌트 / 프리팹 / 어셋 / 리플렉션). 유니티 창이 열려 있을 때도, 닫혀 있을 때도 모두 대응 |
-| [`scripts/claude-bridge-mcp/`](scripts/claude-bridge-mcp/README.md) | 파이썬으로 쓴 얇은 MCP 서버. Claude Desktop 이 `unity_call(op, args)` 한 번으로 유니티를 다룰 수 있게 해줘요 |
+| [`scripts/claude-bridge-mcp/`](scripts/claude-bridge-mcp/README.md) | 파이썬으로 쓴 얇은 MCP 서버. Claude Code 가 `unity_call(op, args)` 한 번으로 유니티를 다룰 수 있게 해줘요 |
 | [`scripts/run.sh`](scripts/run.sh) / [`run-editor.sh`](scripts/run-editor.sh) / [`bridge-run.sh`](scripts/bridge-run.sh) | `/run` 스킬이 상황 따라 부르는 세 가지 실제 셸 파일 |
 | [`Assets/Editor/ParallelAgentSetup.cs`](Assets/Editor/ParallelAgentSetup.cs) | Domain Reload 를 꺼서 Play 모드 진입이 거의 순식간 |
 | [`scripts/create-symlinked-worktrees.sh`](scripts/create-symlinked-worktrees.sh) | 깃 워크트리 + 심링크로 여러 에이전트를 동시에 돌릴 수 있게 도와주는 셸 파일 |
