@@ -21,5 +21,19 @@
       "mcp__claude-bridge__unity_call",
       "mcp__claude-bridge__unity_batch_flush"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/ensure-worktree-setup.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
   }
 }
