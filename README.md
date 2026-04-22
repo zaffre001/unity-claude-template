@@ -80,7 +80,7 @@
 
 > **Claude Code CLI 를 쓰신다면** 데스크탑 앱과 동일하게 `.mcp.json` 이 자동으로 잡힙니다 (`cd ~/Documents/my-game && claude`). 설정 파일(`.mcp.json`, `~/.claude.json`, `settings.json`, CLAUDE.md, skills) 은 앱과 CLI 가 모두 공유해요.
 >
-> **Claude Desktop (chat 앱) 은 별개** 입니다. `claude_desktop_config.json` 은 이 템플릿과 상관없는 파일이라, 거기에 브릿지를 등록하려면 이 README 가 아니라 `.claude/skills/setup.md` §5 "대체 경로" 의 pipx 지침을 따라 주세요 — 권장하지 않습니다.
+> **Claude Desktop (chat 앱) 은 별개** 입니다. `claude_desktop_config.json` 은 이 템플릿과 상관없는 파일이라, 거기에 브릿지를 등록하려면 이 README 가 아니라 `.claude/skills/setup/SKILL.md` §5 "대체 경로" 의 pipx 지침을 따라 주세요 — 권장하지 않습니다.
 
 ---
 

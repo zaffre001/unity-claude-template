@@ -142,7 +142,7 @@ public class GameManager : MonoBehaviour
 | 2. 프로젝트 도메인 | 이 파일 + `.claude/domain/*.md` | 이 프로젝트만의 기획·시스템·유기적 관계 |
 | 3. 불변 제약 | `RULES.md` | 위반 시 시스템이 망가지는 프로젝트 고유 규칙 (RULE-01 ~) |
 | 4. 경로 스코프 | `.claude/rules/*.md` | 경로·파일 타입별 규칙 |
-| 5. 스킬 (on-demand) | `.claude/skills/*.md` | `/task-start`, `/task-done`, `/self-update`, `/design`, `/run` |
+| 5. 스킬 (on-demand) | `.claude/skills/*/SKILL.md` | `/task-start`, `/task-done`, `/self-update`, `/design`, `/run` |
 
 추가로:
 - `CLAUDE.local.md` — 개인·실시간 지침 (`.gitignore` 포함, 버전 컨트롤 제외)

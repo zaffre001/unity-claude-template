@@ -54,7 +54,7 @@ Claude는 **단순 도형 SVG를 직접 작성**해서 Unity Sprite로 임포트
 자주 쓰는 viewBox="0 0 100 100" SVG 패턴:
 - 원형 배지 / 둥근 사각형 / 별 / 체크 / X / 화살표 / 다이아·하트·스페이드·클로버 / 기어 / 방패 / 말풍선
 
-상세 예시와 op 호출 인자는 [`../skills/make-asset.md`](../skills/make-asset.md) §4-4-A.
+상세 예시와 op 호출 인자는 [`../skills/make-asset/SKILL.md`](../skills/make-asset/SKILL.md) §4-4-A.
 
 **외부 바이너리 제거됨**: 과거에는 `rsvg-convert` / `magick` / `qlmanage` 로 PNG 래스터화했지만 이제 Unity 내장 렌더링(`VectorUtils.RenderSpriteToTexture2D` + MSAA 4x)으로 대체. 개발자 머신에 추가 설치 불필요, `com.unity.vectorgraphics` 패키지만 있으면 OK (manifest.json 기본 포함).
 

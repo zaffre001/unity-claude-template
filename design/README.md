@@ -32,4 +32,4 @@ design/
 
 - 각 계획은 **한 번 실행되면 변경하지 않는 불변 아티팩트**로 취급합니다. 변경이 필요하면 `{slug}-v2` 등으로 새 폴더를 만드세요.
 - 단계 파일은 **다음 에이전트가 문맥 없이 실행할 수 있도록** 자기 완결적으로 작성됩니다.
-- 스킬 상세 동작은 [`.claude/skills/design.md`](../.claude/skills/design.md) 참고.
+- 스킬 상세 동작은 [`.claude/skills/design/SKILL.md`](../.claude/skills/design/SKILL.md) 참고.

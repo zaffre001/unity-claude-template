@@ -1,6 +1,6 @@
 # `/debug` 스킬 테스트 시나리오
 
-`.claude/skills/debug.md` + `.claude/knowledge/debugging/*` 의 툴 매트릭스·Adragna 10원칙이 실제 버그 앞에서 작동하는지 검증.
+`.claude/skills/debug/SKILL.md` + `.claude/knowledge/debugging/*` 의 툴 매트릭스·Adragna 10원칙이 실제 버그 앞에서 작동하는지 검증.
 
 > **검증 기준 — 시나리오 Pass 조건**
 > 1. 스킬이 지시한 1순위 툴(Grep / LSP / Bridge) 이 실행 가능해야 한다.
