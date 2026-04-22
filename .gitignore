@@ -24,10 +24,14 @@ CLAUDE.local.md
 # ClaudeBridge IPC (런타임 큐, 버전 컨트롤 제외)
 /.claude-bridge/
 
-# Python 빌드 찌꺼기 (pipx / uv / setuptools)
+# Python 빌드·런타임 찌꺼기
+__pycache__/
+*.pyc
 scripts/claude-bridge-mcp/build/
 scripts/claude-bridge-mcp/*.egg-info/
 scripts/claude-bridge-mcp/.venv/
 scripts/claude-bridge-mcp/uv.lock
-scripts/claude-bridge-mcp/__pycache__/
-scripts/claude-bridge-mcp/claude_bridge_mcp/__pycache__/
+
+# Claude Code 런타임 (에이전트 워크트리·스케줄러 락 등)
+/.claude/worktrees/
+/.claude/scheduled_tasks.lock
