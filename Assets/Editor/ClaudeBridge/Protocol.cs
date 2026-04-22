@@ -131,8 +131,8 @@ namespace Project.Editor.ClaudeBridge
         public string svgText;          // 인라인 SVG 문자열 (svgPath보다 우선)
         public string svgPath;          // 프로젝트 루트 기준 .svg 경로 (없으면 svgText 사용)
         public string pngPath;          // 출력 PNG 경로. "Assets/..." 아래여야 임포트됨. 필수.
-        public int    width;            // 픽셀 너비. 0이면 256.
-        public int    height;           // 픽셀 높이. 0이면 256.
+        public int    width;            // 힌트. 출력은 정방형 POT 로 강제 (NextPowerOfTwo(max(w,h))). 0이면 256.
+        public int    height;           // 힌트. 위와 동일. 0이면 256.
         public float  pixelsPerUnit;    // Sprite PPU. 0이면 100.
         public string filterMode;       // "Point"|"Bilinear"|"Trilinear". 빈 문자열이면 Bilinear.
         public string compression;      // "None"|"LowQuality"|"NormalQuality"|"HighQuality". 빈 문자열이면 None.

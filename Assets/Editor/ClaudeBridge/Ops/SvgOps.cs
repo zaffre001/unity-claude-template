@@ -9,12 +9,17 @@ namespace Project.Editor.ClaudeBridge.Ops
     /// <summary>
     /// SVG → Texture2D → PNG → Sprite 임포트. 외부 바이너리(ImageMagick/rsvg-convert/qlmanage) 의존 제거.
     ///
+    /// 출력 크기는 항상 **정방형 POT** 로 강제된다 (Unity 텍스처 압축·밉맵 호환). 호출자가
+    /// 넘긴 width/height 는 힌트로 쓰여 outSize = NextPowerOfTwo(max(w,h)) 로 스냅된다.
+    /// 비정방형 viewBox 는 정방형 캔버스 가운데에 letterbox(투명 패딩) 처리.
+    ///
     /// 파이프라인:
     ///   1) SVGParser.ImportSVG 로 SVG 문자열 파싱 → Scene
     ///   2) VectorUtils.TessellateScene 으로 지오메트리 생성
     ///   3) VectorUtils.FillMesh 로 Mesh 직접 조립 (Sprite 경로 우회 — Unity 6 에서
     ///      BuildSprite 내부의 Sprite.OverrideGeometry 가 빈 이름 sprite에서 거부됨)
-    ///   4) RenderTexture + GL 직교 투영으로 Mesh 직접 렌더 (MSAA 지원, SVG Y-down 를 뒤집어 맞춤)
+    ///   4) RenderTexture + GL 직교 투영으로 Mesh 직접 렌더 (정방형 캔버스에 viewBox 가운데 정렬,
+    ///      MSAA 지원, SVG Y-down 를 뒤집어 맞춤)
     ///   5) Texture2D.ReadPixels + EncodeToPNG() → 디스크 저장
     ///   6) AssetDatabase.ImportAsset + TextureImporter 로 Sprite 임포트 옵션 적용
     /// </summary>
@@ -31,8 +36,10 @@ namespace Project.Editor.ClaudeBridge.Ops
             if (string.IsNullOrEmpty(svgText))
                 throw new ArgumentException("Either svgText or svgPath is required");
 
-            int width  = a.width  > 0 ? a.width  : 256;
-            int height = a.height > 0 ? a.height : 256;
+            int reqW   = a.width  > 0 ? a.width  : 256;
+            int reqH   = a.height > 0 ? a.height : 256;
+            // 정방형 POT 강제 — 호출자가 넘긴 w/h 중 큰 쪽을 다음 2의 거듭제곱으로 스냅. 256/256→256, 320/448→512.
+            int outSize = Mathf.NextPowerOfTwo(Math.Max(reqW, reqH));
             float ppu  = a.pixelsPerUnit > 0 ? a.pixelsPerUnit : 100f;
             int aa     = a.antiAliasing > 0 ? a.antiAliasing : 4;
 
@@ -71,7 +78,7 @@ namespace Project.Editor.ClaudeBridge.Ops
             if (shader == null) throw new Exception("Vector graphics shader not found. Is com.unity.vectorgraphics installed?");
             var mat = new Material(shader) { hideFlags = HideFlags.DontSave };
 
-            var rt = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB, aa);
+            var rt = RenderTexture.GetTemporary(outSize, outSize, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB, aa);
             Texture2D tex;
             var prevActive = RenderTexture.active;
             try
@@ -80,17 +87,21 @@ namespace Project.Editor.ClaudeBridge.Ops
                 GL.Clear(true, true, new Color(0, 0, 0, 0));
 
                 GL.PushMatrix();
-                // SVG 좌표계는 Y-down. 직교 투영에서 top=bounds.yMin, bottom=bounds.yMax 로 둬서 위아래 뒤집음.
+                // 정방형 viewport 를 viewBox 중심에 맞춰 확장 → letterbox. SVG 좌표계는 Y-down 이라
+                // top=center-half, bottom=center+half 로 둬서 위아래 뒤집음 (RT 클리어가 투명이라 패딩은 알파 0).
+                float cx = bounds.xMin + bounds.width  * 0.5f;
+                float cy = bounds.yMin + bounds.height * 0.5f;
+                float half = Mathf.Max(bounds.width, bounds.height) * 0.5f;
                 GL.LoadProjectionMatrix(Matrix4x4.Ortho(
-                    bounds.xMin, bounds.xMax,
-                    bounds.yMax, bounds.yMin,
+                    cx - half, cx + half,
+                    cy + half, cy - half,
                     -1f, 1f));
                 mat.SetPass(0);
                 Graphics.DrawMeshNow(mesh, Matrix4x4.identity);
                 GL.PopMatrix();
 
-                tex = new Texture2D(width, height, TextureFormat.RGBA32, false, false);
-                tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+                tex = new Texture2D(outSize, outSize, TextureFormat.RGBA32, false, false);
+                tex.ReadPixels(new Rect(0, 0, outSize, outSize), 0, 0);
                 tex.Apply();
             }
             finally
@@ -140,8 +151,8 @@ namespace Project.Editor.ClaudeBridge.Ops
             {
                 pngPath       = a.pngPath,
                 svgPath       = savedSvgRel,
-                width         = width,
-                height        = height,
+                width         = outSize,
+                height        = outSize,
                 pixelsPerUnit = ppu,
             });
         }
