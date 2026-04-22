@@ -122,6 +122,34 @@ namespace Project.Editor.ClaudeBridge
     [Serializable] public class PrefabCreateVariantArgs   { public string sourcePath; public string variantPath; }
     [Serializable] public class PrefabCreateVariantResult { public string variantPath; }
 
+    // === Sprite (SVG → Texture2D → PNG 임포트) ===
+    // Unity Vector Graphics 패키지(com.unity.vectorgraphics)로 SVG를 파싱·테셀레이트해
+    // Texture2D로 렌더링 후 PNG로 저장, 결과 파일을 Sprite 로 임포트한다. 외부 바이너리(magick/rsvg) 불필요.
+    [Serializable]
+    public class SpriteImportSvgArgs
+    {
+        public string svgText;          // 인라인 SVG 문자열 (svgPath보다 우선)
+        public string svgPath;          // 프로젝트 루트 기준 .svg 경로 (없으면 svgText 사용)
+        public string pngPath;          // 출력 PNG 경로. "Assets/..." 아래여야 임포트됨. 필수.
+        public int    width;            // 픽셀 너비. 0이면 256.
+        public int    height;           // 픽셀 높이. 0이면 256.
+        public float  pixelsPerUnit;    // Sprite PPU. 0이면 100.
+        public string filterMode;       // "Point"|"Bilinear"|"Trilinear". 빈 문자열이면 Bilinear.
+        public string compression;      // "None"|"LowQuality"|"NormalQuality"|"HighQuality". 빈 문자열이면 None.
+        public int    antiAliasing;     // MSAA 샘플 (1/2/4/8). 0이면 4.
+        public bool   saveSvgSource;    // true면 PNG 옆에 .svg 원본 동시 저장 (svgText 사용 시).
+    }
+
+    [Serializable]
+    public class SpriteImportSvgResult
+    {
+        public string pngPath;
+        public string svgPath;          // saveSvgSource=true 이고 svgText를 썼을 때만 채워짐
+        public int    width;
+        public int    height;
+        public float  pixelsPerUnit;
+    }
+
     // === Component: RectTransform 편의 ===
     // UGUI 씬/프리팹 조립 시 anchor/pivot/size를 한 호출에 세팅.
     // null/길이2 아닌 배열은 "변경 안함". offsetMin/Max는 anchor 기반 좌표, 동시 지정 시 size/anchoredPosition보다 나중에 적용됨.

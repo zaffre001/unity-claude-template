@@ -36,6 +36,9 @@ namespace Project.Editor.ClaudeBridge
             ["Asset.Refresh"]      = Ops.AssetOps.Refresh,
             ["Asset.CreatePrefab"] = Ops.AssetOps.CreatePrefab,
 
+            // Sprite (SVG → PNG → Sprite 임포트, 외부 바이너리 불필요)
+            ["Sprite.ImportFromSvg"] = Ops.SvgOps.ImportFromSvg,
+
             // Prefab (stage-mode + 중첩 인스턴스)
             ["Prefab.Open"]               = Ops.PrefabOps.Open,
             ["Prefab.Save"]               = Ops.PrefabOps.Save,
