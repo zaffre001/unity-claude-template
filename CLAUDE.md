@@ -1,5 +1,10 @@
 # Unity Claude Template — CLAUDE.md
 
+> **Legacy notice (2026-08-19):** 이 저장소는 보관되었으며 더 이상 유지보수하지 않는다.
+> 기존 프로젝트는 현재 구성을 그대로 사용할 수 있다. 새 설치형 패키지와 Claude Code·Codex
+> 공용 지원은 <https://github.com/zaffre001/unity-agent-kit>에서 진행한다.
+> 마이그레이션 도구가 공개되기 전에는 연결된 legacy 구성요소를 임의로 제거하지 않는다.
+
 > Claude Code 에이전트 기반 유니티 프로젝트 템플릿. 포크해서 본인 게임 이름으로 바꿔 쓰세요.
 
 ## 0. 이 프로젝트에 대하여
