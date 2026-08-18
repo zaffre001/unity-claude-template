@@ -1,6 +1,13 @@
-# Unity Claude Template — a starting point for your game
+# [Archived] Unity Claude Template — a starting point for your game
 
 [한국어](README.md) · **English**
+
+> [!WARNING]
+> **This repository was archived on August 19, 2026 and is no longer maintained.**
+> Existing projects can keep using this final state. New development continues in
+> **[Unity Agent Kit](https://github.com/zaffre001/unity-agent-kit)**, the installable,
+> agent-neutral successor. Read the [migration guide](MIGRATION.md) before removing
+> any legacy files from an existing project.
 
 > **This repo is an empty foundation for starting your own Unity game with Claude.**
 > The plumbing is pre-wired so an AI agent can assemble scenes, write scripts, and create prefabs for you.
